@@ -10,10 +10,11 @@ def run_preprocessing(input: str) -> list[cv2.Matlike]:
     Parameters:
         input (str): Path to the input image file.
     """
+    img = cv2.imread(input, cv2.IMREAD_GRAYSCALE)
     image_results = []
-    image_results.append(binary_img(input))
-    image_results.append(mean_tresh_img(input))
-    image_results.append(gaussian_tresh_img(input))
+    image_results.append(binary_img(img))
+    image_results.append(mean_tresh_img(img))
+    image_results.append(gaussian_tresh_img(img))
     return image_results
 
 
