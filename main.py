@@ -1,10 +1,15 @@
 import argparse
 import cv2
 
-from src.bitmap.preprocessing import binary_img, mean_tresh_img, gaussian_tresh_img
+from src.bitmap.preprocessing import (
+    binary_img,
+    mean_tresh_img,
+    gaussian_tresh_img,
+    otsu_thresholding,
+)
 
 
-def run_preprocessing(input: str) -> list[cv2.Matlike]:
+def run_preprocessing(input: str) -> list[cv2.typing.MatLike]:
     """Run the preprocessing stage on bitmap file.
 
     Parameters:
@@ -15,7 +20,26 @@ def run_preprocessing(input: str) -> list[cv2.Matlike]:
     image_results.append(binary_img(img))
     image_results.append(mean_tresh_img(img))
     image_results.append(gaussian_tresh_img(img))
+    image_results.append(otsu_thresholding(img))
+
+    gaussian_blur = cv2.GaussianBlur(img, (5, 5), 0)
+    image_results.append(otsu_thresholding(gaussian_blur))
+
     return image_results
+
+
+def save_img(workspace: str, filename: str, img: cv2.typing.MatLike) -> None:
+    """
+    Save the processed image to the specified workspace.
+
+    Parameters:
+        workspace (str): Path to the workspace directory.
+        filename (str): Name of the file to save the image as.
+        img (cv2.typing.MatLike): The image to be saved.
+    """
+    if workspace.endswith("/"):
+        workspace = workspace[:-1]
+    cv2.imwrite(f"{workspace}/{filename}", img)
 
 
 def parse_args():
@@ -27,27 +51,27 @@ def parse_args():
 
 
 def main():
+    # Init
     args = parse_args()
+    workspace = "data/smiley/preprocessing/"
+    filenames = [
+        "binary_image.jpg",
+        "mean_threshold_image.jpg",
+        "gaussian_threshold_image.jpg",
+        "otsu_threshold_image.jpg",
+        "otsu_threshold_gaussian_blur_image.jpg",
+    ]
 
     try:
         # Open image
         images = run_preprocessing(args.input)
 
-        for i in range(len(images)):
+        for filename, img in zip(filenames, images):
             # Save result image
-            if i == 0:
-                cv2.imwrite("data/smiley/preprocessing/binary_image.jpg", images[i])
-            if i == 1:
-                cv2.imwrite(
-                    "data/smiley/preprocessing/mean_threshold_image.jpg", images[i]
-                )
-            if i == 2:
-                cv2.imwrite(
-                    "data/smiley/preprocessing/gaussian_threshold_image.jpg", images[i]
-                )
+            save_img(workspace, filename, img)
 
             # Show the image
-            cv2.imshow("Image", images[i])
+            cv2.imshow("Image", img)
 
             # Wait for a key press and close the image window
             cv2.waitKey(0)

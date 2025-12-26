@@ -51,3 +51,18 @@ def gaussian_tresh_img(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
         img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
     )
     return gaussian_tresh_img
+
+
+def otsu_thresholding(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
+    """
+    Convert an image to black and white bitmap using Otsu's thresholding.
+
+    This function is used in the bitmap to vector preprocess.
+
+    Parameter:
+        img (cv2.typing.MatLike): Grayscale image as a cv2 MatLike object.
+    Returns:
+        cv2.typing.MatLike: Black and white image as a cv2 MatLike object.
+    """
+    _, otsu_thresh_img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    return otsu_thresh_img

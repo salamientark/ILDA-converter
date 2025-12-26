@@ -1,5 +1,7 @@
 # ILDA Converter
 
+[![CI](https://github.com/salamientark/ILDA-converter/actions/workflows/ci.yml/badge.svg)](https://github.com/salamientark/ILDA-converter/actions/workflows/ci.yml)
+
 A Python toolkit for converting bitmap and vector images to ILDA format for laser show control systems.
 
 ## Overview
