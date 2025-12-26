@@ -9,7 +9,7 @@ from src.bitmap.preprocessing import (
 )
 
 
-def run_preprocessing(input: str) -> list[cv2.Matlike]:
+def run_preprocessing(input: str) -> list[cv2.typing.MatLike]:
     """Run the preprocessing stage on bitmap file.
 
     Parameters:
@@ -28,14 +28,14 @@ def run_preprocessing(input: str) -> list[cv2.Matlike]:
     return image_results
 
 
-def save_img(workspace: str, filename: str, img: cv2.Matlike) -> None:
+def save_img(workspace: str, filename: str, img: cv2.typing.MatLike) -> None:
     """
     Save the processed image to the specified workspace.
 
     Parameters:
         workspace (str): Path to the workspace directory.
         filename (str): Name of the file to save the image as.
-        img (cv2.Matlike): The image to be saved.
+        img (cv2.typing.MatLike): The image to be saved.
     """
     if workspace.endswith("/"):
         workspace = workspace[:-1]
@@ -51,28 +51,27 @@ def parse_args():
 
 
 def main():
-    workspace = "data/smiley/preprocessing/"
+    # Init
     args = parse_args()
+    workspace = "data/smiley/preprocessing/"
+    filenames = [
+        "binary_image.jpg",
+        "mean_threshold_image.jpg",
+        "gaussian_threshold_image.jpg",
+        "otsu_threshold_image.jpg",
+        "otsu_threshold_gaussian_blur_image.jpg",
+    ]
 
     try:
         # Open image
         images = run_preprocessing(args.input)
 
-        for i in range(len(images)):
+        for filename, img in zip(filenames, images):
             # Save result image
-            if i == 0:
-                save_img(workspace, "binary_image.jpg", images[i])
-            if i == 1:
-                save_img(workspace, "mean_threshold_image.jpg", images[i])
-            if i == 2:
-                save_img(workspace, "gaussian_threshold_image.jpg", images[i])
-            if i == 3:
-                save_img(workspace, "otsu_threshold_image.jpg", images[i])
-            if i == 4:
-                save_img(workspace, "otsu_threshold_gaussian_blur_image.jpg", images[i])
+            save_img(workspace, filename, img)
 
             # Show the image
-            cv2.imshow("Image", images[i])
+            cv2.imshow("Image", img)
 
             # Wait for a key press and close the image window
             cv2.waitKey(0)
