@@ -10,6 +10,10 @@ from typing import Any
 import cv2
 import potrace
 
+from src.logger.logging_config import get_logger
+
+logger = get_logger(__name__)
+
 POTRACE_CONFIGS = {
     "default": {
         "turdsize": 2,
@@ -62,5 +66,9 @@ def vectorize_img(
     """
     bitmap = potrace.Bitmap(img)
     if config is None:
-        return bitmap.trace()
-    return bitmap.trace(**config)
+        path = bitmap.trace()
+    else:
+        path = bitmap.trace(**config)
+
+    logger.debug("Image vectorized")
+    return path

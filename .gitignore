@@ -3,3 +3,7 @@
 AGENTS.md
 
 *.svg
+
+# Logging
+logs/
+*.log
