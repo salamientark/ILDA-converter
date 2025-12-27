@@ -75,14 +75,18 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "matplotlib" },
+    { name = "numpy" },
     { name = "opencv-python" },
+    { name = "potracer" },
     { name = "ruff" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "matplotlib", specifier = ">=3.10.8" },
+    { name = "numpy", specifier = ">=2.2.6" },
     { name = "opencv-python", specifier = ">=4.12.0.88" },
+    { name = "potracer", specifier = ">=0.0.4" },
     { name = "ruff", specifier = ">=0.14.10" },
 ]
 
@@ -216,6 +220,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/a2/2f/16cabcc6426c32218ace36bf0d55955e813f2958afddbf1d391849fee9d1/pillow-12.0.0-cp314-cp314t-win32.whl", hash = "sha256:3830c769decf88f1289680a59d4f4c46c72573446352e2befec9a8512104fa52", size = 6408045, upload-time = "2025-10-15T18:23:53.177Z" },
     { url = "https://files.pythonhosted.org/packages/35/73/e29aa0c9c666cf787628d3f0dcf379f4791fba79f4936d02f8b37165bdf8/pillow-12.0.0-cp314-cp314t-win_amd64.whl", hash = "sha256:905b0365b210c73afb0ebe9101a32572152dfd1c144c7e28968a331b9217b94a", size = 7148282, upload-time = "2025-10-15T18:23:55.316Z" },
     { url = "https://files.pythonhosted.org/packages/c1/70/6b41bdcddf541b437bbb9f47f94d2db5d9ddef6c37ccab8c9107743748a4/pillow-12.0.0-cp314-cp314t-win_arm64.whl", hash = "sha256:99353a06902c2e43b43e8ff74ee65a7d90307d82370604746738a1e0661ccca7", size = 2525630, upload-time = "2025-10-15T18:23:57.149Z" },
+]
+
+[[package]]
+name = "potracer"
+version = "0.0.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d4/5f/d84189372d95ffd144ae515907f775d385863dc3fb7e123331428c8a2a3e/potracer-0.0.4.tar.gz", hash = "sha256:32cbdb984446066bcfbe8b600142a54b90fa6da274b69219473205d6e4c09713", size = 19267, upload-time = "2022-01-26T11:23:22.514Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/44/1b/98a371d1b72cf004555698362266889a87c9bb0bed14a814652b32972034/potracer-0.0.4-py2.py3-none-any.whl", hash = "sha256:350bb2c7c8532059165264974617d460999e0215cf2f459c0616fa8805c27ce6", size = 24892, upload-time = "2022-01-26T11:23:21.123Z" },
 ]
 
 [[package]]
