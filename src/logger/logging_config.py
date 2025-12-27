@@ -30,13 +30,26 @@ class StructuredFormatter(logging.Formatter):
             str: JSON-formatted log entry.
         """
         log_data = {
-            "timestamp": datetime.fromtimestamp(record.created).isoformat() + "Z",
+            "timestamp": datetime.fromtimestamp(record.created).isoformat(),
             "level": record.levelname,
             # "module": record.module,
             # "function": record.funcName,
             # "line": record.lineno,
             "message": record.getMessage(),
         }
+
+        # Add timing information if present
+        duration_ms = getattr(record, "duration_ms", None)
+        if duration_ms is not None:
+            log_data["duration_ms"] = duration_ms
+
+        operation = getattr(record, "operation", None)
+        if operation is not None:
+            log_data["operation"] = operation
+
+        metadata = getattr(record, "metadata", None)
+        if metadata is not None:
+            log_data["metadata"] = metadata
 
         # Add exception information if present
         if record.exc_info:

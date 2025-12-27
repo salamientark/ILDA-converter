@@ -18,6 +18,7 @@ from src.preprocessing.preprocessing import (
 )
 from src.preprocessing.vectorization import vectorize_img, POTRACE_CONFIGS
 from src.logger.logging_config import get_logger
+from src.logger.timing import Timer
 
 logger = get_logger(__name__)
 
@@ -113,10 +114,10 @@ def run_pipeline(input: str):
 
     instructions = [
         ("binary_image", binary_img),
-        ("mean_threshold_image", mean_thresh_img),
-        ("gaussian_threshold_image", gaussian_thresh_img),
-        ("otsu_threshold_image", otsu_thresholding),
-        ("otsu_threshold_gaussian_blur_image", otsu_thresholding),
+        # ("mean_threshold_image", mean_thresh_img),
+        # ("gaussian_threshold_image", gaussian_thresh_img),
+        # ("otsu_threshold_image", otsu_thresholding),
+        # ("otsu_threshold_gaussian_blur_image", otsu_thresholding),
     ]
 
     img = cv2.imread(input, cv2.IMREAD_GRAYSCALE)
@@ -140,7 +141,8 @@ def run_pipeline(input: str):
         for cfg_name, trace_cfg in POTRACE_CONFIGS.items():
             logger.info(f"Vectorization using {cfg_name} mode")
 
-            path = vectorize_img(processed_img, trace_cfg)
+            with Timer("vectorization", config=cfg_name):
+                path = vectorize_img(processed_img, trace_cfg)
 
             logger.debug("Converting path to SVG")
             raw_svg = path_to_svg(path, img.shape[1], img.shape[0])
