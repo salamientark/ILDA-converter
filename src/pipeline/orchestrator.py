@@ -1,5 +1,13 @@
-import cv2
+"""
+Pipeline orchestrator for managing the complete bitmap-to-vector workflow.
+
+Coordinates preprocessing, vectorization, and output generation for multiple
+configuration combinations, saving intermediate results and final SVG files.
+"""
+
 import os
+
+import cv2
 import potrace
 
 from src.preprocessing.preprocessing import (
@@ -79,12 +87,23 @@ def save_img(workspace: str, filename: str, img: cv2.typing.MatLike) -> None:
 
 
 def run_pipeline(input: str):
-    # Init
+    """
+    Execute the complete image processing pipeline from bitmap to vector.
+
+    Applies multiple preprocessing techniques (binary, mean threshold, Gaussian threshold,
+    Otsu's thresholding) to the input image, then vectorizes each result using different
+    Potrace configurations and saves the output as SVG files.
+
+    Parameters:
+        input (str): Path to the input image file (must be readable by OpenCV).
+
+    Raises:
+        FileNotFoundError: If the input image file does not exist or cannot be read.
+    """
     data_dir = "smiley"
     pre_workspace = f"data/{data_dir}/preprocessing"
     svg_workspace = f"data/{data_dir}/svg"
 
-    # Create dirs if not exist
     os.makedirs(pre_workspace, exist_ok=True)
     os.makedirs(svg_workspace, exist_ok=True)
 
@@ -103,37 +122,23 @@ def run_pipeline(input: str):
     for filename, func in instructions:
         print(f"Running preprocessing with {func.__name__}")
 
-        # Perform preprocessing
         if filename == "otsu_threshold_gaussian_blur_image":
+            # Apply Gaussian blur (5x5 kernel, sigma=0) before Otsu thresholding
             tmp = cv2.GaussianBlur(img, (5, 5), 0)
             processed_img = func(tmp)
         else:
             processed_img = func(img)
 
-        # Save file
         save_img(pre_workspace, f"{filename}.pbm", processed_img)
 
-        # Vectorize
         for cfg_name, trace_cfg in POTRACE_CONFIGS.items():
-            # TODO: Start timing
+            # TODO: Add timing and logging for performance metrics
             print(f"Vectorization using {cfg_name} mode")
 
-            # Make vectorized path
             path = vectorize_img(processed_img, trace_cfg)
-            # bitmap = potrace.Bitmap(processed_img)
-            # path = bitmap.trace(**trace_cfg)
 
-            # TODO: End timing + logging
-
-            # Save to svg
             print("Saving to svg")
             raw_svg = path_to_svg(path, img.shape[1], img.shape[0])
             with open(f"{svg_workspace}/{filename}_{cfg_name}.svg", "w") as svg_file:
-                # Save SVG file
                 svg_file.writelines("\n".join(raw_svg))
                 print(f"Saved SVG: {svg_workspace}/{filename.split('.')[0]}.svg")
-
-        # Print Bitmap Image
-        # cv2.imshow("Image", processed_img)
-        # cv2.waitKey(0)
-        # cv2.destroyAllWindows()

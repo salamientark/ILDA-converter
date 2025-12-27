@@ -1,6 +1,14 @@
-import potrace
+"""
+Vectorization module for converting binary images to vector paths using Potrace.
+
+Provides predefined Potrace configurations optimized for different use cases
+(default, high quality, smooth, fast) and a wrapper function for vectorization.
+"""
+
+from typing import Any
+
 import cv2
-from typing import Optional
+import potrace
 
 POTRACE_CONFIGS = {
     "default": {
@@ -34,11 +42,23 @@ POTRACE_CONFIGS = {
 }
 
 
-def vectorize_img(img: cv2.typing.MatLike, config: Optional[any]) -> potrace.Path:
+def vectorize_img(
+    img: cv2.typing.MatLike, config: dict[str, Any] | None
+) -> potrace.Path:
     """
-    Convert a bitmap image to potrace Path object for the specified config.
+    Convert a binary image to a vector path using Potrace.
+
+    Wraps the Potrace bitmap tracing functionality with optional configuration
+    for controlling corner detection, curve optimization, and despeckling.
 
     Parameters:
+        img (cv2.typing.MatLike): Binary input image (black and white).
+        config (dict[str, Any] | None): Potrace configuration dictionary with
+            parameters like turdsize, turnpolicy, alphamax, etc. Use predefined
+            configs from POTRACE_CONFIGS or None for defaults.
+
+    Returns:
+        potrace.Path: Vectorized path representation of the binary image.
     """
     bitmap = potrace.Bitmap(img)
     if config is None:

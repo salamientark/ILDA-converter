@@ -1,3 +1,10 @@
+"""
+Preprocessing package for bitmap image processing and vectorization.
+
+Provides thresholding functions for converting grayscale images to binary format
+and Potrace-based vectorization utilities for converting binary images to vector paths.
+"""
+
 from .preprocessing import (
     binary_img,
     mean_tresh_img,
@@ -8,7 +15,7 @@ from .preprocessing import (
 from .vectorization import POTRACE_CONFIGS, vectorize_img
 
 __all__ = [
-    # PREPROCESSINg
+    # PREPROCESSING
     "binary_img",
     "mean_tresh_img",
     "gaussian_tresh_img",
