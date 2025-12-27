@@ -13,7 +13,7 @@ __all__ = [
     "mean_tresh_img",
     "gaussian_tresh_img",
     "otsu_thresholding",
-    # VECTORIZATOIN
+    # VECTORIZATION
     "POTRACE_CONFIGS",
     "vectorize_img",
 ]

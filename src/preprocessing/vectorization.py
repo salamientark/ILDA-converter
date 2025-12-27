@@ -41,5 +41,6 @@ def vectorize_img(img: cv2.typing.MatLike, config: Optional[any]) -> potrace.Pat
     Parameters:
     """
     bitmap = potrace.Bitmap(img)
-    path = bitmap.trace(**config)
-    return path
+    if config is None:
+        return bitmap.trace()
+    return bitmap.trace(**config)

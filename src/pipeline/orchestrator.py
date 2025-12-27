@@ -1,4 +1,6 @@
 import cv2
+import os
+import potrace
 
 from src.preprocessing.preprocessing import (
     binary_img,
@@ -9,14 +11,16 @@ from src.preprocessing.preprocessing import (
 from src.preprocessing.vectorization import vectorize_img, POTRACE_CONFIGS
 
 
-def path_to_svg(path: cv2.typing.MatLike, width: int, height: int) -> None:
+def path_to_svg(path: potrace.Path, width: int, height: int) -> list[str]:
     """
     Convert a bitmap path to SVG format.
 
     Parameters:
-        path (cv2.typing.MatLike): The bitmap path to convert.
+        path (potrace.Path): The potrace path to convert.
         width (int): The width of the output SVG.
         height (int): The height of the output SVG.
+    Returns:
+        list[str]: The SVG representation as a list of strings.
     """
     parts = []
 
@@ -79,6 +83,11 @@ def run_pipeline(input: str):
     data_dir = "smiley"
     pre_workspace = f"data/{data_dir}/preprocessing"
     svg_workspace = f"data/{data_dir}/svg"
+
+    # Create dirs if not exist
+    os.makedirs(pre_workspace, exist_ok=True)
+    os.makedirs(svg_workspace, exist_ok=True)
+
     instructions = [
         ("binary_image", binary_img),
         ("mean_threshold_image", mean_tresh_img),
@@ -88,6 +97,8 @@ def run_pipeline(input: str):
     ]
 
     img = cv2.imread(input, cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        raise FileNotFoundError(f"Input image not found: {input}")
 
     for filename, func in instructions:
         print(f"Running preprocessing with {func.__name__}")
@@ -105,7 +116,7 @@ def run_pipeline(input: str):
         # Vectorize
         for cfg_name, trace_cfg in POTRACE_CONFIGS.items():
             # TODO: Start timing
-            print(f"Vectrizatoin using {cfg_name} mode")
+            print(f"Vectorization using {cfg_name} mode")
 
             # Make vectorized path
             path = vectorize_img(processed_img, trace_cfg)
@@ -120,7 +131,7 @@ def run_pipeline(input: str):
             with open(f"{svg_workspace}/{filename}_{cfg_name}.svg", "w") as svg_file:
                 # Save SVG file
                 svg_file.writelines("\n".join(raw_svg))
-                print(f"Saved SVG: {pre_workspace}/{filename.split('.')[0]}.svg")
+                print(f"Saved SVG: {svg_workspace}/{filename.split('.')[0]}.svg")
 
         # Print Bitmap Image
         # cv2.imshow("Image", processed_img)
