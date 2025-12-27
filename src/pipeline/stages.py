@@ -9,8 +9,8 @@ import cv2
 
 from src.preprocessing.preprocessing import (
     binary_img,
-    mean_tresh_img,
-    gaussian_tresh_img,
+    mean_thresh_img,
+    gaussian_thresh_img,
     otsu_thresholding,
 )
 
@@ -39,8 +39,8 @@ def run_preprocessing_stage(input: str) -> list[cv2.typing.MatLike]:
 
     image_results = []
     image_results.append(binary_img(img))
-    image_results.append(mean_tresh_img(img))
-    image_results.append(gaussian_tresh_img(img))
+    image_results.append(mean_thresh_img(img))
+    image_results.append(gaussian_thresh_img(img))
     image_results.append(otsu_thresholding(img))
 
     gaussian_blur = cv2.GaussianBlur(img, (5, 5), 0)

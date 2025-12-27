@@ -7,8 +7,8 @@ and Potrace-based vectorization utilities for converting binary images to vector
 
 from .preprocessing import (
     binary_img,
-    mean_tresh_img,
-    gaussian_tresh_img,
+    mean_thresh_img,
+    gaussian_thresh_img,
     otsu_thresholding,
 )
 
@@ -17,8 +17,8 @@ from .vectorization import POTRACE_CONFIGS, vectorize_img
 __all__ = [
     # PREPROCESSING
     "binary_img",
-    "mean_tresh_img",
-    "gaussian_tresh_img",
+    "mean_thresh_img",
+    "gaussian_thresh_img",
     "otsu_thresholding",
     # VECTORIZATION
     "POTRACE_CONFIGS",

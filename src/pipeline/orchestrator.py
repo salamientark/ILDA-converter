@@ -12,8 +12,8 @@ import potrace
 
 from src.preprocessing.preprocessing import (
     binary_img,
-    mean_tresh_img,
-    gaussian_tresh_img,
+    mean_thresh_img,
+    gaussian_thresh_img,
     otsu_thresholding,
 )
 from src.preprocessing.vectorization import vectorize_img, POTRACE_CONFIGS
@@ -109,8 +109,8 @@ def run_pipeline(input: str):
 
     instructions = [
         ("binary_image", binary_img),
-        ("mean_threshold_image", mean_tresh_img),
-        ("gaussian_threshold_image", gaussian_tresh_img),
+        ("mean_threshold_image", mean_thresh_img),
+        ("gaussian_threshold_image", gaussian_thresh_img),
         ("otsu_threshold_image", otsu_thresholding),
         ("otsu_threshold_gaussian_blur_image", otsu_thresholding),
     ]

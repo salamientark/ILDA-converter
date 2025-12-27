@@ -77,16 +77,16 @@ python main.py --input path/to/image.jpg
 ### Python API
 
 ```python
-from src.bitmap.preprocessing import binary_img, mean_tresh_img, gaussian_tresh_img
+from src.bitmap.preprocessing import binary_img, mean_thresh_img, gaussian_thresh_img
 
 # Apply binary thresholding
 binary_result = binary_img("path/to/image.jpg")
 
 # Apply adaptive mean thresholding
-mean_result = mean_tresh_img("path/to/image.jpg")
+mean_result = mean_thresh_img("path/to/image.jpg")
 
 # Apply adaptive gaussian thresholding
-gaussian_result = gaussian_tresh_img("path/to/image.jpg")
+gaussian_result = gaussian_thresh_img("path/to/image.jpg")
 ```
 
 ## Technical Pipeline

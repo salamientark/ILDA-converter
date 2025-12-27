@@ -25,7 +25,7 @@ def binary_img(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
     return binary_img
 
 
-def mean_tresh_img(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
+def mean_thresh_img(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
     """
     Convert a grayscale image to binary using adaptive mean thresholding.
 
@@ -38,13 +38,13 @@ def mean_tresh_img(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
     Returns:
         cv2.typing.MatLike: Binary image with adaptive thresholding applied.
     """
-    mean_tresh_img = cv2.adaptiveThreshold(
+    mean_thresh_img = cv2.adaptiveThreshold(
         img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2
     )
-    return mean_tresh_img
+    return mean_thresh_img
 
 
-def gaussian_tresh_img(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
+def gaussian_thresh_img(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
     """
     Convert a grayscale image to binary using adaptive Gaussian thresholding.
 
@@ -57,10 +57,10 @@ def gaussian_tresh_img(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
     Returns:
         cv2.typing.MatLike: Binary image with Gaussian adaptive thresholding applied.
     """
-    gaussian_tresh_img = cv2.adaptiveThreshold(
+    gaussian_thresh_img = cv2.adaptiveThreshold(
         img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
     )
-    return gaussian_tresh_img
+    return gaussian_thresh_img
 
 
 def otsu_thresholding(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
