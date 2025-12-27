@@ -10,6 +10,7 @@ def parse_args():
     parser.add_argument("--output", required=False, help="Path to output image")
     return parser.parse_args()
 
+
 def main():
     # Init
     args = parse_args()

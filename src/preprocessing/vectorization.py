@@ -1,6 +1,5 @@
 import potrace
 import cv2
-import potrace
 from typing import Optional
 
 POTRACE_CONFIGS = {
@@ -33,6 +32,7 @@ POTRACE_CONFIGS = {
         "opttolerance": 0.2,
     },
 }
+
 
 def vectorize_img(img: cv2.typing.MatLike, config: Optional[any]) -> potrace.Path:
     """

@@ -5,10 +5,7 @@ from .preprocessing import (
     otsu_thresholding,
 )
 
-from .vectorization import (
-    POTRACE_CONFIGS,
-    vectorize_img
-)
+from .vectorization import POTRACE_CONFIGS, vectorize_img
 
 __all__ = [
     # PREPROCESSINg
@@ -18,5 +15,5 @@ __all__ = [
     "otsu_thresholding",
     # VECTORIZATOIN
     "POTRACE_CONFIGS",
-    "vectorize_img"
+    "vectorize_img",
 ]

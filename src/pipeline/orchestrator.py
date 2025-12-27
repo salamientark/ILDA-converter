@@ -8,6 +8,7 @@ from src.preprocessing.preprocessing import (
 )
 from src.preprocessing.vectorization import vectorize_img, POTRACE_CONFIGS
 
+
 def path_to_svg(path: cv2.typing.MatLike, width: int, height: int) -> None:
     """
     Convert a bitmap path to SVG format.
@@ -20,8 +21,10 @@ def path_to_svg(path: cv2.typing.MatLike, width: int, height: int) -> None:
     parts = []
 
     # SVG Header
-    parts.append(f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">')
-    parts.append(f'<path d="')
+    parts.append(
+        f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">'
+    )
+    parts.append('<path d="')
 
     # Iterate over the curves (shapes) in the path
     for curve in path:
@@ -44,13 +47,13 @@ def path_to_svg(path: cv2.typing.MatLike, width: int, height: int) -> None:
                 c2 = segment.c2
                 end = segment.end_point
                 parts.append(f"C {c1.x},{c1.y} {c2.x},{c2.y} {end.x},{end.y}")
-        
+
         # 3. Close the shape loop
         parts.append("Z")
 
     # SVG Footer
-    parts.append(f'" stroke="black" fill="none"/>')
-    parts.append('</svg>')
+    parts.append('" stroke="black" fill="none"/>')
+    parts.append("</svg>")
 
     return parts
 
@@ -81,11 +84,11 @@ def run_pipeline(input: str):
         ("mean_threshold_image", mean_tresh_img),
         ("gaussian_threshold_image", gaussian_tresh_img),
         ("otsu_threshold_image", otsu_thresholding),
-        ("otsu_threshold_gaussian_blur_image", otsu_thresholding)
+        ("otsu_threshold_gaussian_blur_image", otsu_thresholding),
     ]
 
     img = cv2.imread(input, cv2.IMREAD_GRAYSCALE)
-    
+
     for filename, func in instructions:
         print(f"Running preprocessing with {func.__name__}")
 
@@ -115,10 +118,10 @@ def run_pipeline(input: str):
             print("Saving to svg")
             raw_svg = path_to_svg(path, img.shape[1], img.shape[0])
             with open(f"{svg_workspace}/{filename}_{cfg_name}.svg", "w") as svg_file:
-            # Save SVG file
+                # Save SVG file
                 svg_file.writelines("\n".join(raw_svg))
                 print(f"Saved SVG: {pre_workspace}/{filename.split('.')[0]}.svg")
-            
+
         # Print Bitmap Image
         # cv2.imshow("Image", processed_img)
         # cv2.waitKey(0)

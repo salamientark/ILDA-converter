@@ -1,7 +1,11 @@
 import cv2
-import potrace
 
-from src.preprocessing.preprocessing import binary_img, mean_tresh_img, gaussian_tresh_img, otsu_thresholding
+from src.preprocessing.preprocessing import (
+    binary_img,
+    mean_tresh_img,
+    gaussian_tresh_img,
+    otsu_thresholding,
+)
 
 
 def run_preprocessing_stage(input: str) -> list[cv2.typing.MatLike]:
@@ -26,9 +30,9 @@ def run_preprocessing_stage(input: str) -> list[cv2.typing.MatLike]:
 
     return image_results
 
-def run_vectorization_stage(images: list[cv2.typing.MatLike]) -> list[potrace.Path]:
-    """
-    Run the vectorization stage.
-    """
-    for img in images:
 
+# def run_vectorization_stage(images: list[cv2.typing.MatLike]) -> list[potrace.Path]:
+#     """
+#     Run the vectorization stage.
+#     """
+#     for img in images:
