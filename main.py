@@ -8,6 +8,7 @@ and pipeline execution.
 import argparse
 
 from src.pipeline.orchestrator import run_pipeline
+from src.logger.logging_config import setup_logging, get_logger
 
 
 def parse_args():
@@ -27,12 +28,17 @@ def main():
     Parses command line arguments and executes the full processing pipeline
     including preprocessing and vectorization stages.
     """
+    setup_logging()
+    logger = get_logger(__name__)
+
     args = parse_args()
+    logger.info(f"ILDA pipeline started: {args.input}")
 
     try:
         run_pipeline(args.input)
-    except Exception as e:
-        print(f"Error: {e}")
+        logger.info("Pipeline completed successfully")
+    except Exception:
+        logger.error("Pipeline failed", exc_info=True)
         exit(1)
 
 

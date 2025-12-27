@@ -13,6 +13,9 @@ from src.preprocessing.preprocessing import (
     gaussian_thresh_img,
     otsu_thresholding,
 )
+from src.logger.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 def run_preprocessing_stage(input: str) -> list[cv2.typing.MatLike]:
@@ -33,6 +36,8 @@ def run_preprocessing_stage(input: str) -> list[cv2.typing.MatLike]:
     Raises:
         FileNotFoundError: If the input image file does not exist or cannot be read.
     """
+    logger.info(f"Starting preprocessing stage: {input}")
+
     img = cv2.imread(input, cv2.IMREAD_GRAYSCALE)
     if img is None:
         raise FileNotFoundError(f"Input image not found: {input}")
@@ -46,4 +51,5 @@ def run_preprocessing_stage(input: str) -> list[cv2.typing.MatLike]:
     gaussian_blur = cv2.GaussianBlur(img, (5, 5), 0)
     image_results.append(otsu_thresholding(gaussian_blur))
 
+    logger.info("Preprocessing stage complete")
     return image_results

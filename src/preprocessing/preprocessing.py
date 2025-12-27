@@ -7,6 +7,10 @@ mean threshold, adaptive Gaussian threshold, and Otsu's automatic thresholding.
 
 import cv2
 
+from src.logger.logging_config import get_logger
+
+logger = get_logger(__name__)
+
 
 def binary_img(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
     """
@@ -22,6 +26,7 @@ def binary_img(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
         cv2.typing.MatLike: Binary image (black and white only).
     """
     _, binary_img = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
+    logger.debug("Binary threshold applied")
     return binary_img
 
 
@@ -41,6 +46,7 @@ def mean_thresh_img(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
     mean_thresh_img = cv2.adaptiveThreshold(
         img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2
     )
+    logger.debug("Adaptive mean threshold applied")
     return mean_thresh_img
 
 
@@ -60,6 +66,7 @@ def gaussian_thresh_img(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
     gaussian_thresh_img = cv2.adaptiveThreshold(
         img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
     )
+    logger.debug("Adaptive Gaussian threshold applied")
     return gaussian_thresh_img
 
 
@@ -77,4 +84,5 @@ def otsu_thresholding(img: cv2.typing.MatLike) -> cv2.typing.MatLike:
         cv2.typing.MatLike: Binary image with Otsu's thresholding applied.
     """
     _, otsu_thresh_img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    logger.debug("Otsu threshold applied")
     return otsu_thresh_img
