@@ -17,6 +17,10 @@ from src.preprocessing.preprocessing import (
     otsu_thresholding,
 )
 from src.preprocessing.vectorization import vectorize_img, POTRACE_CONFIGS
+from src.logger.logging_config import get_logger
+from src.logger.timing import Timer
+
+logger = get_logger(__name__)
 
 
 def path_to_svg(path: potrace.Path, width: int, height: int) -> list[str]:
@@ -84,6 +88,7 @@ def save_img(workspace: str, filename: str, img: cv2.typing.MatLike) -> None:
     if workspace.endswith("/"):
         workspace = workspace[:-1]
     cv2.imwrite(f"{workspace}/{filename}", img)
+    logger.debug(f"Image saved: {workspace}/{filename}")
 
 
 def run_pipeline(input: str):
@@ -109,18 +114,20 @@ def run_pipeline(input: str):
 
     instructions = [
         ("binary_image", binary_img),
-        ("mean_threshold_image", mean_thresh_img),
-        ("gaussian_threshold_image", gaussian_thresh_img),
-        ("otsu_threshold_image", otsu_thresholding),
-        ("otsu_threshold_gaussian_blur_image", otsu_thresholding),
+        # ("mean_threshold_image", mean_thresh_img),
+        # ("gaussian_threshold_image", gaussian_thresh_img),
+        # ("otsu_threshold_image", otsu_thresholding),
+        # ("otsu_threshold_gaussian_blur_image", otsu_thresholding),
     ]
 
     img = cv2.imread(input, cv2.IMREAD_GRAYSCALE)
     if img is None:
         raise FileNotFoundError(f"Input image not found: {input}")
 
+    logger.info(f"Image loaded: {img.shape[1]}x{img.shape[0]} pixels")
+
     for filename, func in instructions:
-        print(f"Running preprocessing with {func.__name__}")
+        logger.info(f"Running preprocessing with {func.__name__}")
 
         if filename == "otsu_threshold_gaussian_blur_image":
             # Apply Gaussian blur (5x5 kernel, sigma=0) before Otsu thresholding
@@ -132,13 +139,13 @@ def run_pipeline(input: str):
         save_img(pre_workspace, f"{filename}.pbm", processed_img)
 
         for cfg_name, trace_cfg in POTRACE_CONFIGS.items():
-            # TODO: Add timing and logging for performance metrics
-            print(f"Vectorization using {cfg_name} mode")
+            logger.info(f"Vectorization using {cfg_name} mode")
 
-            path = vectorize_img(processed_img, trace_cfg)
+            with Timer("vectorization", config=cfg_name):
+                path = vectorize_img(processed_img, trace_cfg)
 
-            print("Saving to svg")
+            logger.debug("Converting path to SVG")
             raw_svg = path_to_svg(path, img.shape[1], img.shape[0])
             with open(f"{svg_workspace}/{filename}_{cfg_name}.svg", "w") as svg_file:
                 svg_file.writelines("\n".join(raw_svg))
-                print(f"Saved SVG: {svg_workspace}/{filename.split('.')[0]}.svg")
+                logger.info(f"Saved SVG: {svg_workspace}/{filename}_{cfg_name}.svg")
