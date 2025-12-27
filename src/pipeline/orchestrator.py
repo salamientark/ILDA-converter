@@ -105,7 +105,7 @@ def run_pipeline(input: str):
     Raises:
         FileNotFoundError: If the input image file does not exist or cannot be read.
     """
-    data_dir = "smiley"
+    data_dir = "skull_1"
     pre_workspace = f"data/{data_dir}/preprocessing"
     svg_workspace = f"data/{data_dir}/svg"
 
@@ -114,10 +114,10 @@ def run_pipeline(input: str):
 
     instructions = [
         ("binary_image", binary_img),
-        # ("mean_threshold_image", mean_thresh_img),
-        # ("gaussian_threshold_image", gaussian_thresh_img),
-        # ("otsu_threshold_image", otsu_thresholding),
-        # ("otsu_threshold_gaussian_blur_image", otsu_thresholding),
+        ("mean_threshold_image", mean_thresh_img),
+        ("gaussian_threshold_image", gaussian_thresh_img),
+        ("otsu_threshold_image", otsu_thresholding),
+        ("otsu_threshold_gaussian_blur_image", otsu_thresholding),
     ]
 
     img = cv2.imread(input, cv2.IMREAD_GRAYSCALE)
