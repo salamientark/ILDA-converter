@@ -6,6 +6,8 @@ configuration combinations, saving intermediate results and final SVG files.
 """
 
 import os
+from collections.abc import Callable
+from typing import Any
 
 import cv2
 import potrace
@@ -24,19 +26,46 @@ logger = get_logger(__name__)
 
 
 def create_instructions(
-    preprocessing: str,
-    vectorization: str
-) -> tuple[list[str, callable], list[str, dict]]:
+    preprocessing: str, vectorization: str
+) -> tuple[list[tuple[str, Callable]], list[tuple[str, dict[str, Any]]]]:
+    """
+    Filter preprocessing and vectorization instructions based on user selections.
+
+    Parameters:
+        preprocessing (str): Preprocessing method to use. Options: 'binary',
+            'mean', 'gaussian', 'otsu', or 'all' to apply all methods.
+        vectorization (str): Vectorization configuration to use. Options:
+            'default', 'fast', 'high', 'smooth', or 'all' to apply all configurations.
+
+    Returns:
+        tuple[list[tuple[str, Callable]], list[tuple[str, dict[str, Any]]]]: A tuple containing:
+            - List of tuples with (preprocessing_name, preprocessing_function)
+            - List of tuples with (config_name, config_dict) from POTRACE_CONFIGS
+    """
     preprocessing_map = [
         ("binary", binary_img),
         ("mean", mean_thresh_img),
         ("gaussian", gaussian_thresh_img),
         ("otsu", otsu_thresholding),
     ]
-    vectorization_map = POTRACE_CONFIGS.items()
 
-    preprocessing_instructions = [pre for pre in preprocessing_map if preprocessing in (pre[0], "all")]
-    vectorization_instructions = [vec for vec in vectorization_map if vectorization in (vec[0], "all")]
+    # Map user-friendly names to POTRACE_CONFIGS keys
+    vectorization_name_map = {
+        "default": "default",
+        "fast": "fast",
+        "high": "high_quality",
+        "smooth": "smooth",
+    }
+
+    preprocessing_instructions = [
+        pre for pre in preprocessing_map if preprocessing in (pre[0], "all")
+    ]
+
+    if vectorization == "all":
+        vectorization_instructions = list(POTRACE_CONFIGS.items())
+    else:
+        config_key = vectorization_name_map.get(vectorization, vectorization)
+        vectorization_instructions = [(config_key, POTRACE_CONFIGS[config_key])]
 
     return preprocessing_instructions, vectorization_instructions
 
@@ -113,12 +142,15 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str):
     """
     Execute the complete image processing pipeline from bitmap to vector.
 
-    Applies multiple preprocessing techniques (binary, mean threshold, Gaussian threshold,
-    Otsu's thresholding) to the input image, then vectorizes each result using different
-    Potrace configurations and saves the output as SVG files.
+    Applies selected preprocessing technique(s) to the input image, then vectorizes
+    each result using specified Potrace configuration(s) and saves the output as SVG files.
 
     Parameters:
         input (str): Path to the input image file (must be readable by OpenCV).
+        preprocessing (str): Preprocessing method to use. Options: 'binary',
+            'mean', 'gaussian', 'otsu', or 'all' to apply all methods.
+        vectorization (str): Vectorization configuration to use. Options:
+            'default', 'fast', 'high', 'smooth', or 'all' to apply all configurations.
 
     Raises:
         FileNotFoundError: If the input image file does not exist or cannot be read.
@@ -131,7 +163,9 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str):
     os.makedirs(pre_workspace, exist_ok=True)
     os.makedirs(svg_workspace, exist_ok=True)
 
-    preproc_instructions, vectorization_instructions = create_instructions(preprocessing, vectorization)
+    preproc_instructions, vectorization_instructions = create_instructions(
+        preprocessing, vectorization
+    )
 
     img = cv2.imread(input, cv2.IMREAD_GRAYSCALE)
     if img is None:
