@@ -6,6 +6,8 @@ configuration combinations, saving intermediate results and final SVG files.
 """
 
 import os
+from collections.abc import Callable
+from typing import Any
 
 import cv2
 import potrace
@@ -21,6 +23,51 @@ from src.logger.logging_config import get_logger
 from src.logger.timing import Timer
 
 logger = get_logger(__name__)
+
+
+def create_instructions(
+    preprocessing: str, vectorization: str
+) -> tuple[list[tuple[str, Callable]], list[tuple[str, dict[str, Any]]]]:
+    """
+    Filter preprocessing and vectorization instructions based on user selections.
+
+    Parameters:
+        preprocessing (str): Preprocessing method to use. Options: 'binary',
+            'mean', 'gaussian', 'otsu', or 'all' to apply all methods.
+        vectorization (str): Vectorization configuration to use. Options:
+            'default', 'fast', 'high', 'smooth', or 'all' to apply all configurations.
+
+    Returns:
+        tuple[list[tuple[str, Callable]], list[tuple[str, dict[str, Any]]]]: A tuple containing:
+            - List of tuples with (preprocessing_name, preprocessing_function)
+            - List of tuples with (config_name, config_dict) from POTRACE_CONFIGS
+    """
+    preprocessing_map = [
+        ("binary", binary_img),
+        ("mean", mean_thresh_img),
+        ("gaussian", gaussian_thresh_img),
+        ("otsu", otsu_thresholding),
+    ]
+
+    # Map user-friendly names to POTRACE_CONFIGS keys
+    vectorization_name_map = {
+        "default": "default",
+        "fast": "fast",
+        "high": "high_quality",
+        "smooth": "smooth",
+    }
+
+    preprocessing_instructions = [
+        pre for pre in preprocessing_map if preprocessing in (pre[0], "all")
+    ]
+
+    if vectorization == "all":
+        vectorization_instructions = list(POTRACE_CONFIGS.items())
+    else:
+        config_key = vectorization_name_map.get(vectorization, vectorization)
+        vectorization_instructions = [(config_key, POTRACE_CONFIGS[config_key])]
+
+    return preprocessing_instructions, vectorization_instructions
 
 
 def path_to_svg(path: potrace.Path, width: int, height: int) -> list[str]:
@@ -91,34 +138,34 @@ def save_img(workspace: str, filename: str, img: cv2.typing.MatLike) -> None:
     logger.debug(f"Image saved: {workspace}/{filename}")
 
 
-def run_pipeline(input: str):
+def run_pipeline(input: str, preprocessing: str, vectorization: str):
     """
     Execute the complete image processing pipeline from bitmap to vector.
 
-    Applies multiple preprocessing techniques (binary, mean threshold, Gaussian threshold,
-    Otsu's thresholding) to the input image, then vectorizes each result using different
-    Potrace configurations and saves the output as SVG files.
+    Applies selected preprocessing technique(s) to the input image, then vectorizes
+    each result using specified Potrace configuration(s) and saves the output as SVG files.
 
     Parameters:
         input (str): Path to the input image file (must be readable by OpenCV).
+        preprocessing (str): Preprocessing method to use. Options: 'binary',
+            'mean', 'gaussian', 'otsu', or 'all' to apply all methods.
+        vectorization (str): Vectorization configuration to use. Options:
+            'default', 'fast', 'high', 'smooth', or 'all' to apply all configurations.
 
     Raises:
         FileNotFoundError: If the input image file does not exist or cannot be read.
     """
-    data_dir = "skull_1"
-    pre_workspace = f"data/{data_dir}/preprocessing"
-    svg_workspace = f"data/{data_dir}/svg"
+    base_filename = os.path.splitext(os.path.basename(input))[0]
+    pre_workspace = f"data/{base_filename}/preprocessing"
+    svg_workspace = f"data/{base_filename}/svg"
 
+    os.makedirs(f"data/{base_filename}", exist_ok=True)
     os.makedirs(pre_workspace, exist_ok=True)
     os.makedirs(svg_workspace, exist_ok=True)
 
-    instructions = [
-        ("binary_image", binary_img),
-        ("mean_threshold_image", mean_thresh_img),
-        ("gaussian_threshold_image", gaussian_thresh_img),
-        ("otsu_threshold_image", otsu_thresholding),
-        ("otsu_threshold_gaussian_blur_image", otsu_thresholding),
-    ]
+    preproc_instructions, vectorization_instructions = create_instructions(
+        preprocessing, vectorization
+    )
 
     img = cv2.imread(input, cv2.IMREAD_GRAYSCALE)
     if img is None:
@@ -126,19 +173,15 @@ def run_pipeline(input: str):
 
     logger.info(f"Image loaded: {img.shape[1]}x{img.shape[0]} pixels")
 
-    for filename, func in instructions:
+    for pre_type, func in preproc_instructions:
         logger.info(f"Running preprocessing with {func.__name__}")
 
-        if filename == "otsu_threshold_gaussian_blur_image":
-            # Apply Gaussian blur (5x5 kernel, sigma=0) before Otsu thresholding
-            tmp = cv2.GaussianBlur(img, (5, 5), 0)
-            processed_img = func(tmp)
-        else:
-            processed_img = func(img)
+        filename = f"{pre_type}_{base_filename}"
+        processed_img = func(img)
 
         save_img(pre_workspace, f"{filename}.pbm", processed_img)
 
-        for cfg_name, trace_cfg in POTRACE_CONFIGS.items():
+        for cfg_name, trace_cfg in vectorization_instructions:
             logger.info(f"Vectorization using {cfg_name} mode")
 
             with Timer("vectorization", config=cfg_name):
