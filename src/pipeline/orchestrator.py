@@ -21,6 +21,7 @@ from src.preprocessing.preprocessing import (
 from src.preprocessing.vectorization import vectorize_img, POTRACE_CONFIGS
 from src.logger.logging_config import get_logger
 from src.logger.timing import Timer
+from src.ilda.ilda import path_to_ilda
 
 logger = get_logger(__name__)
 
@@ -158,10 +159,12 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str):
     base_filename = os.path.splitext(os.path.basename(input))[0]
     pre_workspace = f"data/{base_filename}/preprocessing"
     svg_workspace = f"data/{base_filename}/svg"
+    ilda_workspace = f"data/{base_filename}/ilda"
 
     os.makedirs(f"data/{base_filename}", exist_ok=True)
     os.makedirs(pre_workspace, exist_ok=True)
     os.makedirs(svg_workspace, exist_ok=True)
+    os.makedirs(ilda_workspace, exist_ok=True)
 
     preproc_instructions, vectorization_instructions = create_instructions(
         preprocessing, vectorization
@@ -176,6 +179,7 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str):
     for pre_type, func in preproc_instructions:
         logger.info(f"Running preprocessing with {func.__name__}")
 
+        # Apply preprocessing
         filename = f"{pre_type}_{base_filename}"
         processed_img = func(img)
 
@@ -184,11 +188,21 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str):
         for cfg_name, trace_cfg in vectorization_instructions:
             logger.info(f"Vectorization using {cfg_name} mode")
 
+            # Vectorize image
             with Timer("vectorization", config=cfg_name):
                 path = vectorize_img(processed_img, trace_cfg)
 
+            # Save as SVG
             logger.debug("Converting path to SVG")
             raw_svg = path_to_svg(path, img.shape[1], img.shape[0])
             with open(f"{svg_workspace}/{filename}_{cfg_name}.svg", "w") as svg_file:
                 svg_file.writelines("\n".join(raw_svg))
                 logger.info(f"Saved SVG: {svg_workspace}/{filename}_{cfg_name}.svg")
+
+            # Save as ILDA
+            logger.debug("Converting path to ILDA")
+            raw_ilda = path_to_ilda(path)
+            with open(f"{ilda_workspace}/{filename}_{cfg_name}.ild", "wb") as ilda_file:
+                for chunk in raw_ilda:
+                    ilda_file.write(chunk)
+                logger.info(f"Saved ILDA: {ilda_workspace}/{filename}_{cfg_name}.ild")
