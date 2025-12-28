@@ -18,6 +18,20 @@ def parse_args():
     )
     parser.add_argument("--input", required=True, help="Path to input image")
     parser.add_argument("--output", required=False, help="Path to output image")
+    parser.add_argument(
+        "--preprocessing",
+        "-p",
+        choices=["binary", "gaussian", "mean", "otsu", "all"],
+        default="binary",
+        help="Preprocessing method to apply (default: binary)",
+    )
+    parser.add_argument(
+        "--vector-config",
+        "-v",
+        choices=["default", "fast", "high", "smooth", "all"],
+        default="fast",
+        help="Vectorization configuration to use (default: fast)",
+    )
     return parser.parse_args()
 
 
@@ -35,7 +49,7 @@ def main():
     logger.info(f"ILDA pipeline started: {args.input}")
 
     try:
-        run_pipeline(args.input)
+        run_pipeline(args.input, args.preprocessing, args.vector_config)
         logger.info("Pipeline completed successfully")
     except Exception:
         logger.error("Pipeline failed", exc_info=True)
