@@ -21,7 +21,7 @@ from src.preprocessing.preprocessing import (
 from src.preprocessing.vectorization import vectorize_img, POTRACE_CONFIGS
 from src.logger.logging_config import get_logger
 from src.logger.timing import Timer
-from src.ilda.ilda import path_to_ilda
+from src.ilda.ilda_3d import path_to_ilda_3d
 
 logger = get_logger(__name__)
 
@@ -201,7 +201,7 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str):
 
             # Save as ILDA
             logger.debug("Converting path to ILDA")
-            raw_ilda = path_to_ilda(path)
+            raw_ilda = path_to_ilda_3d(path)
             with open(f"{ilda_workspace}/{filename}_{cfg_name}.ild", "wb") as ilda_file:
                 for chunk in raw_ilda:
                     ilda_file.write(chunk)
