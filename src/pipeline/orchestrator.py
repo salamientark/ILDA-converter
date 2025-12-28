@@ -155,11 +155,11 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str):
     Raises:
         FileNotFoundError: If the input image file does not exist or cannot be read.
     """
-    base_filename = os.path.basename(input).split(".")[0]
+    base_filename = os.path.splitext(os.path.basename(input))[0]
     pre_workspace = f"data/{base_filename}/preprocessing"
     svg_workspace = f"data/{base_filename}/svg"
 
-    os.makedirs(base_filename, exist_ok=True)
+    os.makedirs(f"data/{base_filename}", exist_ok=True)
     os.makedirs(pre_workspace, exist_ok=True)
     os.makedirs(svg_workspace, exist_ok=True)
 
