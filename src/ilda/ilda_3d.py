@@ -1,5 +1,5 @@
 """
-Referenve from https://www.ilda.com/resources/StandardsDocs/ILDA_IDTF14_rev011.pdf
+Reference from https://www.ilda.com/resources/StandardsDocs/ILDA_IDTF14_rev011.pdf
 """
 
 import potrace
@@ -52,11 +52,8 @@ def ilda_header_3d(
     # Total frames (2 bytes, big-endian unsigned)
     header += struct.pack(">H", total_frames)
 
-    # Scanner head (1 byte)
-    header += b"\x00"
-
-    # Reserved (2 bytes)
-    header += b"\x00"
+    # Scanner head (2 byte)
+    header += b"\x00\x00"
 
     return header
 
