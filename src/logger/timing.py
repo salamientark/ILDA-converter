@@ -20,7 +20,7 @@ class Timer:
 
     Example:
         with Timer("vectorization", config="default"):
-            result = vectorize_img(img, config)
+            result = vectorize_potrace(img, config)
 
     Logs:
         Console: [2025-12-27 21:05:33] vectorization completed (2801.23ms)

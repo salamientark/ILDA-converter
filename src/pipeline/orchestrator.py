@@ -4,6 +4,7 @@ Pipeline orchestrator for managing the complete bitmap-to-vector workflow.
 Coordinates preprocessing, vectorization, and output generation for multiple
 configuration combinations, saving intermediate results and final SVG files.
 """
+import numpy as np
 
 import os
 from collections.abc import Callable
@@ -18,7 +19,8 @@ from src.preprocessing.preprocessing import (
     gaussian_thresh_img,
     otsu_thresholding,
 )
-from src.preprocessing.vectorization import vectorize_img, POTRACE_CONFIGS
+from src.vectorization.potrace import POTRACE_CONFIGS, vectorize_potrace
+from src.vectorization import POTRACE_CONFIGS, vectorize_potrace, find_image_contour, vectorize_img_opencv
 from src.logger.logging_config import get_logger
 from src.logger.timing import Timer
 from src.ilda.ilda_3d import path_to_ilda_3d
@@ -160,7 +162,6 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str):
     pre_workspace = f"data/{base_filename}/preprocessing"
     svg_workspace = f"data/{base_filename}/svg"
     ilda_workspace = f"data/{base_filename}/ilda"
-
     os.makedirs(f"data/{base_filename}", exist_ok=True)
     os.makedirs(pre_workspace, exist_ok=True)
     os.makedirs(svg_workspace, exist_ok=True)
@@ -183,14 +184,32 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str):
         filename = f"{pre_type}_{base_filename}"
         processed_img = func(img)
 
-        save_img(pre_workspace, f"{filename}.pbm", processed_img)
+        c = find_image_contour(processed_img, retrieval_mode=cv2.RETR_EXTERNAL, invert=False)
+
+        for eps in np.linspace(0.001, 0.05, 10):
+            # approximate the contour
+            peri = cv2.arcLength(c, True)
+            approx = cv2.approxPolyDP(c, eps * peri, True)
+            # draw the approximated contour on the image
+            output = processed_img.copy()
+            cv2.drawContours(output, [approx], -1, (0, 255, 0), 3)
+            text = "eps={:.4f}, num_pts={}".format(eps, len(approx))
+            # show the approximated contour image
+            print("[INFO] {}".format(text))
+            cv2.imshow("Approximated Contour", output)
+            cv2.waitKey(0)
+
+        save_img(pre_workspace, f"{filename}_opencv2_contour.pbm", approx)
+        return
+
+        # save_img(pre_workspace, f"{filename}.pbm", processed_img)
 
         for cfg_name, trace_cfg in vectorization_instructions:
             logger.info(f"Vectorization using {cfg_name} mode")
 
             # Vectorize image
             with Timer("vectorization", config=cfg_name):
-                path = vectorize_img(processed_img, trace_cfg)
+                path = vectorize_potrace(processed_img, trace_cfg)
 
             # Save as SVG
             logger.debug("Converting path to SVG")
