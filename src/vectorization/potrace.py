@@ -42,6 +42,7 @@ class PotraceEngine(VectorizationEngine):
     """
     Class for potrace vectorization engines.
     """
+    @classmethod
     def vectorize(self, img: Any, config: dict[str, Any] | None) -> Any:
         """
         Convert a binary image to a vector path using Potrace.
@@ -67,6 +68,7 @@ class PotraceEngine(VectorizationEngine):
         logger.debug("Image vectorized")
         return path
 
+    @classmethod
     def convert_to_svg(self, vector_path: Any, width: int, height: int) -> str:
         """
         Convert a potrace path to SVG format.
@@ -107,3 +109,56 @@ class PotraceEngine(VectorizationEngine):
         parts.append("</svg>")
 
         return parts
+
+    @classmethod
+    def convert_to_ilda(self, vector_path: Any) -> str:
+        """
+        Convert a potrace path to ILDA
+
+        Parameters:
+            vector_path (potrace.Path): The potrace path to convert.
+        Returns:
+            str: ILDA formatted string.
+        """
+        pass
+
+    @staticmethod
+    def path_to_polyline(path: potrace.Path) -> list[list[tuple[float, float]]]:
+        """
+        Convert a potrace path to a list of polylines.
+        Parameters:
+            path (potrace.Path): The potrace path to convert.
+        Returns:
+            list[list[tuple[float, float]]]: List of polylines as lists of (x, y) points.
+        """
+        polylines: list[list[tuple[float, float]]] = []
+        for curve in path:
+            points: list[tuple[float, float]] = []
+            start = curve.start_point
+            points.append((float(start.x), float(start.y)))
+            for segment in curve:
+                if segment.is_corner:
+                    c = segment.c
+                    end = segment.end_point
+                    points.append((float(c.x), float(c.y)))
+                    points.append((float(end.x), float(end.y)))
+                else:
+                    # For Bezier curves, sample points along the curve
+                    num_samples = 10
+                    for t in range(1, num_samples + 1):
+                        t /= num_samples
+                        x = (
+                            (1 - t) ** 3 * start.x
+                            + 3 * (1 - t) ** 2 * t * segment.c1.x
+                            + 3 * (1 - t) * t ** 2 * segment.c2.x
+                            + t ** 3 * segment.end_point.x
+                        )
+                        y = (
+                            (1 - t) ** 3 * start.y
+                            + 3 * (1 - t) ** 2 * t * segment.c1.y
+                            + 3 * (1 - t) * t ** 2 * segment.c2.y
+                            + t ** 3 * segment.end_point.y
+                        )
+                        points.append((float(x), float(y)))
+            polylines.append(points)
+        return polylines

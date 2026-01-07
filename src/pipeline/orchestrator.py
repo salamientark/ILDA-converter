@@ -236,7 +236,6 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
         # cv2.imshow("Contours", drawn)
         # cv2.waitKey(0)
         # polylines = contours_to_polylines(approx, close_loop=True)
-        #
         # print(polylines)
         # print(f"Found {len(approx)} contours with total {sum(len(c) for c in approx)} points")
 
@@ -250,10 +249,9 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
 
             with Timer("vectorization", config=cfg_name):
                 path = engine.vectorize(processed_img, trace_cfg)
-            return
 
             logger.debug("Converting path to SVG")
-            raw_svg = path_to_svg(path, img.shape[1], img.shape[0])
+            raw_svg = engine.convert_to_svg(path, img.shape[1], img.shape[0])
             with open(f"{svg_workspace}/{filename}_{cfg_name}.svg", "w") as svg_file:
                 svg_file.writelines("\n".join(raw_svg))
                 logger.info(f"Saved SVG: {svg_workspace}/{filename}_{cfg_name}.svg")
