@@ -1,4 +1,4 @@
-from .potrace import POTRACE_CONFIGS, vectorize
+from .potrace import POTRACE_CONFIGS, vectorize_potrace
 from .opencv import (
     OPENCV2_CONFIGS,
     approximate_contours,
@@ -11,7 +11,7 @@ from .opencv import (
 __all__ = [
     # potrace.py
     "POTRACE_CONFIGS",
-    "vectorize",
+    "vectorize_potrace",
     # opencv.py
     "OPENCV2_CONFIGS",
     "approximate_contours",

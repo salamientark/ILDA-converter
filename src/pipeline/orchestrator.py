@@ -26,7 +26,7 @@ from src.preprocessing.preprocessing import (
     mean_thresh_img,
     otsu_thresholding,
 )
-from src.vectorization import POTRACE_CONFIGS, vectorize, vectorize_opencv
+from src.vectorization import POTRACE_CONFIGS, vectorize_potrace, vectorize_opencv
 
 logger = get_logger(__name__)
 
@@ -266,7 +266,7 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
             logger.info(f"Vectorization using {cfg_name} mode")
 
             with Timer("vectorization", config=cfg_name):
-                path = vectorize(processed_img, trace_cfg)
+                path = vectorize_potrace(processed_img, trace_cfg)
 
             ### TEST
             with Timer("vectorization", config=cfg_name):

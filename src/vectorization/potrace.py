@@ -62,7 +62,7 @@ def path_to_polylines(path: potrace.Path) -> list[list[tuple[float, float]]]:
         polylines.append(points)
     return polylines
 
-def vectorize(img: Any, config: dict[str, Any] | None) -> list[list[tuple[float, float]]]:
+def vectorize_potrace(img: Any, config: dict[str, Any] | None) -> list[list[tuple[float, float]]]:
     """
     Convert a binary image to a vector path using Potrace.
 
