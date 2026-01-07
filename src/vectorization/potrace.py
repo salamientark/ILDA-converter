@@ -1,8 +1,6 @@
 from typing import Any
 from src.logger.logging_config import get_logger
 
-from .base import VectorizationEngine
-
 import potrace as potrace
 
 logger = get_logger(__name__)

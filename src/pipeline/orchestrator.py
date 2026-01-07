@@ -26,7 +26,7 @@ from src.preprocessing.preprocessing import (
     mean_thresh_img,
     otsu_thresholding,
 )
-from src.vectorization import POTRACE_CONFIGS, vectorize, vectorize_img_opencv
+from src.vectorization import POTRACE_CONFIGS, vectorize, vectorize_opencv
 
 logger = get_logger(__name__)
 
@@ -270,7 +270,7 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
 
             ### TEST
             with Timer("vectorization", config=cfg_name):
-                polyline, _ = vectorize_img_opencv(processed_img, epsilon_ratio=0.0001, invert=True)
+                polyline, _ = vectorize_opencv(processed_img, epsilon_ratio=0.0001, invert=True)
             # polyline = PotraceEngine.path_to_polylines(path)
             logger.debug("Converting path to SVG")
             raw_svg = polyline_to_svg(polyline, img.shape[1], img.shape[0])

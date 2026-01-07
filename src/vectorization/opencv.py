@@ -188,7 +188,7 @@ def draw_contours_for_debug(
     return canvas
 
 
-def vectorize_img_opencv(
+def vectorize_opencv(
     processed_img: cv2.typing.MatLike,
     *,
     epsilon_ratio: float = 0.01,

@@ -4,7 +4,7 @@ from .opencv import (
     approximate_contours,
     draw_contours_for_debug,
     find_image_contours,
-    vectorize_img_opencv,
+    vectorize_opencv,
     contours_to_polylines,
 )
 
@@ -17,7 +17,7 @@ __all__ = [
     "approximate_contours",
     "draw_contours_for_debug",
     "find_image_contours",
-    "vectorize_img_opencv",
+    "vectorize_opencv",
     "vectorize_potrace",
     "contours_to_polylines",
 ]
