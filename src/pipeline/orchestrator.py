@@ -37,6 +37,32 @@ from src.vectorization.vectorize_opencv import (
 logger = get_logger(__name__)
 
 
+def polyline_to_svg(
+        polyline: list[list[tuple[float, float]]],
+        width: int,
+        height: int) -> str:
+    """Convert a list of polylines to SVG format."""
+    parts: list[str] = []
+
+    parts.append(
+        f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">'
+    )
+    parts.append('<path d="')
+
+    for line in polyline:
+        start_x, start_y = line[0]
+        parts.append(f"M {start_x},{start_y}")
+
+        for x, y in line[1:]:
+            parts.append(f"L {x},{y}")
+
+        parts.append("Z")
+
+    parts.append('" stroke="black" fill="none"/>')
+    parts.append("</svg>")
+
+    return parts
+
 def create_instructions(
     preprocessing: str, vectorization: str
 ) -> tuple[list[tuple[str, Callable]], list[tuple[str, dict[str, Any]]]]:
@@ -236,7 +262,7 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
         # cv2.imshow("Contours", drawn)
         # cv2.waitKey(0)
         # polylines = contours_to_polylines(approx, close_loop=True)
-        # print(polylines)
+        # print(len(polylines))
         # print(f"Found {len(approx)} contours with total {sum(len(c) for c in approx)} points")
 
         ### END TESTING 
@@ -250,8 +276,15 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
             with Timer("vectorization", config=cfg_name):
                 path = engine.vectorize(processed_img, trace_cfg)
 
+            ### TEST
+            polyline = PotraceEngine.path_to_polylines(path)
             logger.debug("Converting path to SVG")
-            raw_svg = engine.convert_to_svg(path, img.shape[1], img.shape[0])
+            raw_svg = polyline_to_svg(polyline, img.shape[1], img.shape[0])
+
+            ### END TEST
+
+            # logger.debug("Converting path to SVG")
+            # raw_svg = engine.convert_to_svg(path, img.shape[1], img.shape[0])
             with open(f"{svg_workspace}/{filename}_{cfg_name}.svg", "w") as svg_file:
                 svg_file.writelines("\n".join(raw_svg))
                 logger.info(f"Saved SVG: {svg_workspace}/{filename}_{cfg_name}.svg")

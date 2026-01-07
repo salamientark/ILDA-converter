@@ -43,7 +43,7 @@ class PotraceEngine(VectorizationEngine):
     Class for potrace vectorization engines.
     """
     @classmethod
-    def vectorize(self, img: Any, config: dict[str, Any] | None) -> Any:
+    def vectorize(self, img: Any, config: dict[str, Any] | None) -> list[list[tuple[float, float]]]:
         """
         Convert a binary image to a vector path using Potrace.
 
@@ -65,8 +65,9 @@ class PotraceEngine(VectorizationEngine):
         else:
             path = bitmap.trace(**config)
 
+        polylines = self.path_to_polylines(path)
         logger.debug("Image vectorized")
-        return path
+        return polylines
 
     @classmethod
     def convert_to_svg(self, vector_path: Any, width: int, height: int) -> str:
@@ -123,7 +124,7 @@ class PotraceEngine(VectorizationEngine):
         pass
 
     @staticmethod
-    def path_to_polyline(path: potrace.Path) -> list[list[tuple[float, float]]]:
+    def path_to_polylines(path: potrace.Path) -> list[list[tuple[float, float]]]:
         """
         Convert a potrace path to a list of polylines.
         Parameters:
@@ -143,22 +144,8 @@ class PotraceEngine(VectorizationEngine):
                     points.append((float(c.x), float(c.y)))
                     points.append((float(end.x), float(end.y)))
                 else:
-                    # For Bezier curves, sample points along the curve
-                    num_samples = 10
-                    for t in range(1, num_samples + 1):
-                        t /= num_samples
-                        x = (
-                            (1 - t) ** 3 * start.x
-                            + 3 * (1 - t) ** 2 * t * segment.c1.x
-                            + 3 * (1 - t) * t ** 2 * segment.c2.x
-                            + t ** 3 * segment.end_point.x
-                        )
-                        y = (
-                            (1 - t) ** 3 * start.y
-                            + 3 * (1 - t) ** 2 * t * segment.c1.y
-                            + 3 * (1 - t) * t ** 2 * segment.c2.y
-                            + t ** 3 * segment.end_point.y
-                        )
-                        points.append((float(x), float(y)))
+                    seg = segment._segment
+                    for point in seg.c:
+                        points.append((float(point.x), float(point.y)))
             polylines.append(points)
         return polylines
