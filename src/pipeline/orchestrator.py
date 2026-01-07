@@ -26,13 +26,7 @@ from src.preprocessing.preprocessing import (
     mean_thresh_img,
     otsu_thresholding,
 )
-from src.vectorization.potrace import POTRACE_CONFIGS, PotraceEngine
-from src.vectorization.vectorize_opencv import (
-    approximate_contours,
-    draw_contours_for_debug,
-    find_image_contours,
-    contours_to_polylines,
-)
+from src.vectorization import POTRACE_CONFIGS, vectorize, vectorize_img_opencv
 
 logger = get_logger(__name__)
 
@@ -231,8 +225,6 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
     svg_workspace = f"data/{base_filename}/svg"
     ilda_workspace = f"data/{base_filename}/ilda"
 
-    engine = PotraceEngine()
-
     os.makedirs(f"data/{base_filename}", exist_ok=True)
     os.makedirs(pre_workspace, exist_ok=True)
     os.makedirs(svg_workspace, exist_ok=True)
@@ -274,10 +266,12 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
             logger.info(f"Vectorization using {cfg_name} mode")
 
             with Timer("vectorization", config=cfg_name):
-                path = engine.vectorize(processed_img, trace_cfg)
+                path = vectorize(processed_img, trace_cfg)
 
             ### TEST
-            polyline = PotraceEngine.path_to_polylines(path)
+            with Timer("vectorization", config=cfg_name):
+                polyline, _ = vectorize_img_opencv(processed_img, epsilon_ratio=0.0001, invert=True)
+            # polyline = PotraceEngine.path_to_polylines(path)
             logger.debug("Converting path to SVG")
             raw_svg = polyline_to_svg(polyline, img.shape[1], img.shape[0])
 
@@ -285,7 +279,7 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
 
             # logger.debug("Converting path to SVG")
             # raw_svg = engine.convert_to_svg(path, img.shape[1], img.shape[0])
-            with open(f"{svg_workspace}/{filename}_{cfg_name}.svg", "w") as svg_file:
+            with open(f"{svg_workspace}/{filename}_opencv_{cfg_name}.svg", "w") as svg_file:
                 svg_file.writelines("\n".join(raw_svg))
                 logger.info(f"Saved SVG: {svg_workspace}/{filename}_{cfg_name}.svg")
 
@@ -295,63 +289,3 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
                 for chunk in raw_ilda:
                     ilda_file.write(chunk)
                 logger.info(f"Saved ILDA: {ilda_workspace}/{filename}_{cfg_name}.ild")
-
-# def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
-#     """Execute the complete image processing pipeline from bitmap to vector.
-#
-#     Parameters:
-#         input (str): Path to the input image file.
-#         preprocessing (str): Preprocessing method selection.
-#         vectorization (str): Potrace vectorization config selection.
-#
-#     Raises:
-#         FileNotFoundError: If the input image file does not exist or cannot be read.
-#     """
-#     base_filename = os.path.splitext(os.path.basename(input))[0]
-#     pre_workspace = f"data/{base_filename}/preprocessing"
-#     svg_workspace = f"data/{base_filename}/svg"
-#     ilda_workspace = f"data/{base_filename}/ilda"
-#
-#     os.makedirs(f"data/{base_filename}", exist_ok=True)
-#     os.makedirs(pre_workspace, exist_ok=True)
-#     os.makedirs(svg_workspace, exist_ok=True)
-#     os.makedirs(ilda_workspace, exist_ok=True)
-#
-#     preproc_instructions, vectorization_instructions = create_instructions(
-#         preprocessing,
-#         vectorization,
-#     )
-#
-#     img = cv2.imread(input, cv2.IMREAD_GRAYSCALE)
-#     if img is None:
-#         raise FileNotFoundError(f"Input image not found: {input}")
-#
-#     logger.info(f"Image loaded: {img.shape[1]}x{img.shape[0]} pixels")
-#
-#     for pre_type, func in preproc_instructions:
-#         logger.info(f"Running preprocessing with {func.__name__}")
-#
-#         filename = f"{pre_type}_{base_filename}"
-#         processed_img = func(img)
-#
-#         # Save binary preprocessing output for inspection.
-#         save_img(pre_workspace, f"{filename}.pbm", processed_img)
-#
-#         for cfg_name, trace_cfg in vectorization_instructions:
-#             logger.info(f"Vectorization using {cfg_name} mode")
-#
-#             with Timer("vectorization", config=cfg_name):
-#                 path = vectorize_potrace(processed_img, trace_cfg)
-#
-#             logger.debug("Converting path to SVG")
-#             raw_svg = path_to_svg(path, img.shape[1], img.shape[0])
-#             with open(f"{svg_workspace}/{filename}_{cfg_name}.svg", "w") as svg_file:
-#                 svg_file.writelines("\n".join(raw_svg))
-#                 logger.info(f"Saved SVG: {svg_workspace}/{filename}_{cfg_name}.svg")
-#
-#             logger.debug("Converting path to ILDA")
-#             raw_ilda = path_to_ilda_3d(path)
-#             with open(f"{ilda_workspace}/{filename}_{cfg_name}.ild", "wb") as ilda_file:
-#                 for chunk in raw_ilda:
-#                     ilda_file.write(chunk)
-#                 logger.info(f"Saved ILDA: {ilda_workspace}/{filename}_{cfg_name}.ild")

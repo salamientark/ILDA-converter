@@ -1,7 +1,36 @@
-from .base import VectorizationBase
+"""OpenCV-based vectorization utilities.
 
-import numpy as np
+This module extracts contours from a binary image using OpenCV and approximates
+those contours into simplified polygons via ``cv2.approxPolyDP``.
+
+Two representations are useful depending on your next step:
+
+- **OpenCV contours** (``list[np.ndarray]`` with shape ``(N, 1, 2)``):
+  compatible with ``cv2.drawContours`` and therefore easy to visualize with
+  ``cv2.imshow``.
+- **Polylines** (``list[list[tuple[float, float]]]``):
+  easy to consume for SVG/ILDA generation code.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
 import cv2
+import numpy as np
+
+# Common retrieval modes:
+# - cv2.RETR_EXTERNAL: outer contours only
+# - cv2.RETR_LIST: all contours, no hierarchy
+# - cv2.RETR_TREE: all contours with hierarchy
+OPENCV2_CONFIGS: dict[str, dict[str, Any]] = {
+    "default": {
+        "retrieval_mode": cv2.RETR_LIST,
+        "epsilon_ratio": 0.01,
+        "invert": False,
+    }
+}
+
 
 def _as_binary_uint8(img: cv2.typing.MatLike, *, invert: bool) -> np.ndarray:
     """Normalize an image to a 0/255 uint8 binary image.
@@ -127,8 +156,68 @@ def contours_to_polylines(
 
     return polylines
 
-class OpenCVVectorization(VectorizationBase):
+
+def draw_contours_for_debug(
+    processed_img: cv2.typing.MatLike,
+    contours: list[np.ndarray],
+    *,
+    color: tuple[int, int, int] = (0, 255, 0),
+    thickness: int = 1,
+) -> np.ndarray:
+    """Render contours on top of the image for visualization.
+
+    This returns a BGR image you can directly show with ``cv2.imshow``.
+
+    Parameters:
+        processed_img (cv2.typing.MatLike): Input image (usually binary grayscale).
+        contours (list[np.ndarray]): Contours to draw.
+        color (tuple[int, int, int]): BGR color.
+        thickness (int): Line thickness.
+
+    Returns:
+        np.ndarray: BGR image with contours drawn.
+    """
+    base = np.asarray(processed_img)
+
+    if base.ndim == 2:
+        canvas = cv2.cvtColor(base.astype(np.uint8), cv2.COLOR_GRAY2BGR)
+    else:
+        canvas = base.astype(np.uint8).copy()
+
+    cv2.drawContours(canvas, contours, contourIdx=-1, color=color, thickness=thickness)
+    return canvas
 
 
-    def vectorize(self, image: any, config: dict | None = None) -> any:
+def vectorize_img_opencv(
+    processed_img: cv2.typing.MatLike,
+    *,
+    epsilon_ratio: float = 0.01,
+    retrieval_mode: int = cv2.RETR_LIST,
+    invert: bool = False,
+) -> tuple[list[list[tuple[float, float]]], list[np.ndarray]]:
+    """Vectorize an image via OpenCV contours + polygon approximation.
 
+    Parameters:
+        processed_img (cv2.typing.MatLike): Binary image.
+        epsilon_ratio (float): Epsilon as ratio of contour perimeter.
+        retrieval_mode (int): OpenCV retrieval mode.
+        invert (bool): Invert image before contour extraction.
+
+    Returns:
+        tuple[list[list[tuple[float, float]]], list[np.ndarray]]:
+            (polylines, approx_contours)
+
+            - ``polylines`` is convenient for SVG/ILDA conversion.
+            - ``approx_contours`` is convenient for OpenCV visualization
+              (``cv2.drawContours`` + ``cv2.imshow``).
+    """
+    contours, _hierarchy = find_image_contours(
+        processed_img,
+        retrieval_mode=retrieval_mode,
+        invert=invert,
+    )
+
+    approx_contours = approximate_contours(contours, epsilon_ratio=epsilon_ratio)
+    polylines = contours_to_polylines(approx_contours)
+
+    return polylines, approx_contours

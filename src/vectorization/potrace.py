@@ -38,114 +38,54 @@ POTRACE_CONFIGS = {
     },
 }
 
-class PotraceEngine(VectorizationEngine):
+def path_to_polylines(path: potrace.Path) -> list[list[tuple[float, float]]]:
     """
-    Class for potrace vectorization engines.
+    Convert a potrace path to a list of polylines.
+    Parameters:
+        path (potrace.Path): The potrace path to convert.
+    Returns:
+        list[list[tuple[float, float]]]: List of polylines as lists of (x, y) points.
     """
-    @classmethod
-    def vectorize(self, img: Any, config: dict[str, Any] | None) -> list[list[tuple[float, float]]]:
-        """
-        Convert a binary image to a vector path using Potrace.
+    polylines: list[list[tuple[float, float]]] = []
+    for curve in path:
+        points: list[tuple[float, float]] = []
+        start = curve.start_point
+        points.append((float(start.x), float(start.y)))
+        for segment in curve:
+            if segment.is_corner:
+                c = segment.c
+                end = segment.end_point
+                points.append((float(c.x), float(c.y)))
+                points.append((float(end.x), float(end.y)))
+            else:
+                seg = segment._segment
+                for point in seg.c:
+                    points.append((float(point.x), float(point.y)))
+        polylines.append(points)
+    return polylines
 
-        Wraps the Potrace bitmap tracing functionality with optional configuration
-        for controlling corner detection, curve optimization, and despeckling.
+def vectorize(img: Any, config: dict[str, Any] | None) -> list[list[tuple[float, float]]]:
+    """
+    Convert a binary image to a vector path using Potrace.
 
-        Parameters:
-            img (cv2.typing.MatLike): Binary input image (black and white).
-            config (dict[str, Any] | None): Potrace configuration dictionary with
-                parameters like turdsize, turnpolicy, alphamax, etc. Use predefined
-                configs from POTRACE_CONFIGS or None for defaults.
+    Wraps the Potrace bitmap tracing functionality with optional configuration
+    for controlling corner detection, curve optimization, and despeckling.
 
-        Returns:
-            potrace.Path: Vectorized path representation of the binary image.
-        """
-        bitmap = potrace.Bitmap(img)
-        if config is None:
-            path = bitmap.trace()
-        else:
-            path = bitmap.trace(**config)
+    Parameters:
+        img (cv2.typing.MatLike): Binary input image (black and white).
+        config (dict[str, Any] | None): Potrace configuration dictionary with
+            parameters like turdsize, turnpolicy, alphamax, etc. Use predefined
+            configs from POTRACE_CONFIGS or None for defaults.
 
-        polylines = self.path_to_polylines(path)
-        logger.debug("Image vectorized")
-        return polylines
+    Returns:
+        potrace.Path: Vectorized path representation of the binary image.
+    """
+    bitmap = potrace.Bitmap(img)
+    if config is None:
+        path = bitmap.trace()
+    else:
+        path = bitmap.trace(**config)
 
-    @classmethod
-    def convert_to_svg(self, vector_path: Any, width: int, height: int) -> str:
-        """
-        Convert a potrace path to SVG format.
-
-        Parameters:
-            path (potrace.Path): The potrace path to convert.
-            width (int): Output SVG width.
-            height (int): Output SVG height.
-
-        Returns:
-            list[str]: SVG lines.
-        """
-        parts: list[str] = []
-
-        parts.append(
-            f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">'
-        )
-        parts.append('<path d="')
-
-        for curve in vector_path:
-            start = curve.start_point
-            parts.append(f"M {start.x},{start.y}")
-
-            for segment in curve:
-                if segment.is_corner:
-                    c = segment.c
-                    end = segment.end_point
-                    parts.append(f"L {c.x},{c.y} L {end.x},{end.y}")
-                else:
-                    c1 = segment.c1
-                    c2 = segment.c2
-                    end = segment.end_point
-                    parts.append(f"C {c1.x},{c1.y} {c2.x},{c2.y} {end.x},{end.y}")
-
-            parts.append("Z")
-
-        parts.append('" stroke="black" fill="none"/>')
-        parts.append("</svg>")
-
-        return parts
-
-    @classmethod
-    def convert_to_ilda(self, vector_path: Any) -> str:
-        """
-        Convert a potrace path to ILDA
-
-        Parameters:
-            vector_path (potrace.Path): The potrace path to convert.
-        Returns:
-            str: ILDA formatted string.
-        """
-        pass
-
-    @staticmethod
-    def path_to_polylines(path: potrace.Path) -> list[list[tuple[float, float]]]:
-        """
-        Convert a potrace path to a list of polylines.
-        Parameters:
-            path (potrace.Path): The potrace path to convert.
-        Returns:
-            list[list[tuple[float, float]]]: List of polylines as lists of (x, y) points.
-        """
-        polylines: list[list[tuple[float, float]]] = []
-        for curve in path:
-            points: list[tuple[float, float]] = []
-            start = curve.start_point
-            points.append((float(start.x), float(start.y)))
-            for segment in curve:
-                if segment.is_corner:
-                    c = segment.c
-                    end = segment.end_point
-                    points.append((float(c.x), float(c.y)))
-                    points.append((float(end.x), float(end.y)))
-                else:
-                    seg = segment._segment
-                    for point in seg.c:
-                        points.append((float(point.x), float(point.y)))
-            polylines.append(points)
-        return polylines
+    polylines = path_to_polylines(path)
+    logger.debug("Image vectorized")
+    return polylines
