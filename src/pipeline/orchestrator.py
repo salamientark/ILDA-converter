@@ -159,55 +159,6 @@ def save_img(workspace: str, filename: str, img: cv2.typing.MatLike) -> None:
     logger.debug(f"Image saved: {workspace}/{filename}")
 
 
-def _maybe_preview_opencv_contours(
-    processed_img: cv2.typing.MatLike,
-    *,
-    retrieval_mode: int = cv2.RETR_EXTERNAL,
-    invert: bool = False,
-) -> None:
-    """Optionally preview contour approximation with ``cv2.imshow``.
-
-    Enable this by setting the environment variable ``ILDA_DEBUG_CONTOURS=1``.
-
-    Parameters:
-        processed_img (cv2.typing.MatLike): Binary image.
-        retrieval_mode (int): OpenCV retrieval mode.
-        invert (bool): Invert before extracting contours.
-    """
-    if os.environ.get("ILDA_DEBUG_CONTOURS") != "1":
-        return
-
-    contours, _hierarchy = find_image_contours(
-        processed_img,
-        retrieval_mode=retrieval_mode,
-        invert=invert,
-    )
-
-    if len(contours) == 0:
-        logger.info("OpenCV preview: no contours found")
-        return
-
-    for eps in np.linspace(0.001, 0.05, 10):
-        approx = approximate_contours(contours, epsilon_ratio=float(eps))
-        total_points = sum(len(c) for c in approx)
-        logger.info(
-            "OpenCV preview: eps=%.4f contours=%d points=%d",
-            eps,
-            len(approx),
-            total_points,
-        )
-
-        overlay = draw_contours_for_debug(processed_img, approx, thickness=2)
-        cv2.imshow("Approximated Contours", overlay)
-
-        # Wait for a keypress; ESC/q exits early.
-        key = cv2.waitKey(0)
-        if key in (27, ord("q")):
-            break
-
-    cv2.destroyAllWindows()
-
-
 def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
     """Execute the complete image processing pipeline from bitmap to vector.
 
@@ -220,7 +171,6 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
         FileNotFoundError: If the input image file does not exist or cannot be read.
     """
     base_filename = os.path.splitext(os.path.basename(input))[0]
-    # base_filename += f"_opencv2"
     pre_workspace = f"data/{base_filename}/preprocessing"
     svg_workspace = f"data/{base_filename}/svg"
     ilda_workspace = f"data/{base_filename}/ilda"
@@ -247,18 +197,6 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
         filename = f"{pre_type}_{base_filename}"
         processed_img = func(img)
 
-        ### TESTING
-        # contours, _ = find_image_contours(processed_img, invert=False)
-        # approx = approximate_contours(contours, epsilon_ratio=0.001, closed=True)
-        # drawn = draw_contours_for_debug(processed_img, approx, thickness=2)
-        # cv2.imshow("Contours", drawn)
-        # cv2.waitKey(0)
-        # polylines = contours_to_polylines(approx, close_loop=True)
-        # print(len(polylines))
-        # print(f"Found {len(approx)} contours with total {sum(len(c) for c in approx)} points")
-
-        ### END TESTING 
-
         # Save binary preprocessing output for inspection.
         save_img(pre_workspace, f"{filename}.pbm", processed_img)
 
@@ -271,14 +209,10 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
             ### TEST
             with Timer("vectorization", config=cfg_name):
                 polyline, _ = vectorize_opencv(processed_img, epsilon_ratio=0.0001, invert=True)
+
             # polyline = PotraceEngine.path_to_polylines(path)
             logger.debug("Converting path to SVG")
             raw_svg = polyline_to_svg(polyline, img.shape[1], img.shape[0])
-
-            ### END TEST
-
-            # logger.debug("Converting path to SVG")
-            # raw_svg = engine.convert_to_svg(path, img.shape[1], img.shape[0])
             with open(f"{svg_workspace}/{filename}_opencv_{cfg_name}.svg", "w") as svg_file:
                 svg_file.writelines("\n".join(raw_svg))
                 logger.info(f"Saved SVG: {svg_workspace}/{filename}_{cfg_name}.svg")
