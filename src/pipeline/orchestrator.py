@@ -31,9 +31,19 @@ logger = get_logger(__name__)
 
 
 def polyline_to_svg(
-    polyline: list[list[tuple[float, float]]], width: int, height: int
-) -> str:
-    """Convert a list of polylines to SVG format."""
+    polylines: list[list[tuple[float, float]]], width: int, height: int
+) -> list[str]:
+    """Convert a list of polylines to a minimal SVG.
+
+    Parameters:
+        polylines (list[list[tuple[float, float]]]): List of polylines. Each polyline
+            is a list of `(x, y)` points.
+        width (int): Output SVG width.
+        height (int): Output SVG height.
+
+    Returns:
+        list[str]: SVG lines suitable for writing with `"\n".join(...)`.
+    """
     parts: list[str] = []
 
     parts.append(
@@ -41,7 +51,7 @@ def polyline_to_svg(
     )
     parts.append('<path d="')
 
-    for line in polyline:
+    for line in polylines:
         start_x, start_y = line[0]
         parts.append(f"M {start_x},{start_y}")
 
@@ -212,14 +222,11 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
 
             logger.debug("Converting path to SVG")
             raw_svg = polyline_to_svg(polyline, img.shape[1], img.shape[0])
-            with open(
-                f"{svg_workspace}/{filename}_opencv_{cfg_name}.svg", "w"
-            ) as svg_file:
+            with open(f"{svg_workspace}/{filename}_{cfg_name}.svg", "w") as svg_file:
                 svg_file.writelines("\n".join(raw_svg))
                 logger.info(f"Saved SVG: {svg_workspace}/{filename}_{cfg_name}.svg")
 
             logger.debug("Converting path to ILDA")
-            print(polyline)
             raw_ilda = path_to_ilda_3d(polyline)
             with open(f"{ilda_workspace}/{filename}_{cfg_name}.ild", "wb") as ilda_file:
                 for chunk in raw_ilda:
