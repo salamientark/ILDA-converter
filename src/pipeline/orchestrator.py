@@ -203,12 +203,12 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
         for cfg_name, trace_cfg in vectorization_instructions:
             logger.info(f"Vectorization using {cfg_name} mode")
 
-            with Timer("vectorization", config=cfg_name):
-                path = vectorize_potrace(processed_img, trace_cfg)
+            # with Timer("vectorization", config=cfg_name):
+            #     path = vectorize_potrace(processed_img, trace_cfg)
 
             ### TEST
             with Timer("vectorization", config=cfg_name):
-                polyline, _ = vectorize_opencv(processed_img, epsilon_ratio=0.0001, invert=True)
+                polyline, _ = vectorize_opencv(processed_img, epsilon_ratio=0.01, invert=True)
 
             # polyline = PotraceEngine.path_to_polylines(path)
             logger.debug("Converting path to SVG")
@@ -218,7 +218,7 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
                 logger.info(f"Saved SVG: {svg_workspace}/{filename}_{cfg_name}.svg")
 
             logger.debug("Converting path to ILDA")
-            raw_ilda = path_to_ilda_3d(path)
+            raw_ilda = path_to_ilda_3d(polyline)
             with open(f"{ilda_workspace}/{filename}_{cfg_name}.ild", "wb") as ilda_file:
                 for chunk in raw_ilda:
                     ilda_file.write(chunk)
