@@ -1,8 +1,7 @@
 """
-Preprocessing package for bitmap image processing and vectorization.
+Preprocessing package for bitmap image processing.
 
-Provides thresholding functions for converting grayscale images to binary format
-and Potrace-based vectorization utilities for converting binary images to vector paths.
+Provides thresholding functions for converting grayscale images to binary format.
 """
 
 from .preprocessing import (
@@ -12,7 +11,6 @@ from .preprocessing import (
     otsu_thresholding,
 )
 
-from .vectorization import POTRACE_CONFIGS, vectorize_img
 
 __all__ = [
     # PREPROCESSING
@@ -20,7 +18,4 @@ __all__ = [
     "mean_thresh_img",
     "gaussian_thresh_img",
     "otsu_thresholding",
-    # VECTORIZATION
-    "POTRACE_CONFIGS",
-    "vectorize_img",
 ]

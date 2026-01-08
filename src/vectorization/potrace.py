@@ -1,16 +1,7 @@
-"""
-Vectorization module for converting binary images to vector paths using Potrace.
-
-Provides predefined Potrace configurations optimized for different use cases
-(default, high quality, smooth, fast) and a wrapper function for vectorization.
-"""
-
 from typing import Any
-
-import cv2
-import potrace
-
 from src.logger.logging_config import get_logger
+
+import potrace as potrace
 
 logger = get_logger(__name__)
 
@@ -46,9 +37,36 @@ POTRACE_CONFIGS = {
 }
 
 
-def vectorize_img(
-    img: cv2.typing.MatLike, config: dict[str, Any] | None
-) -> potrace.Path:
+def path_to_polylines(path: potrace.Path) -> list[list[tuple[float, float]]]:
+    """
+    Convert a potrace path to a list of polylines.
+    Parameters:
+        path (potrace.Path): The potrace path to convert.
+    Returns:
+        list[list[tuple[float, float]]]: List of polylines as lists of (x, y) points.
+    """
+    polylines: list[list[tuple[float, float]]] = []
+    for curve in path:
+        points: list[tuple[float, float]] = []
+        start = curve.start_point
+        points.append((float(start.x), float(start.y)))
+        for segment in curve:
+            if segment.is_corner:
+                c = segment.c
+                end = segment.end_point
+                points.append((float(c.x), float(c.y)))
+                points.append((float(end.x), float(end.y)))
+            else:
+                seg = segment._segment
+                for point in seg.c:
+                    points.append((float(point.x), float(point.y)))
+        polylines.append(points)
+    return polylines
+
+
+def vectorize_potrace(
+    img: Any, config: dict[str, Any] | None
+) -> list[list[tuple[float, float]]]:
     """
     Convert a binary image to a vector path using Potrace.
 
@@ -70,5 +88,6 @@ def vectorize_img(
     else:
         path = bitmap.trace(**config)
 
+    polylines = path_to_polylines(path)
     logger.debug("Image vectorized")
-    return path
+    return polylines
