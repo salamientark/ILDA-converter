@@ -205,13 +205,11 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
             # with Timer("vectorization", config=cfg_name):
             #     path = vectorize_potrace(processed_img, trace_cfg)
 
-            ### TEST
             with Timer("vectorization", config=cfg_name):
                 polyline, _ = vectorize_opencv(
                     processed_img, epsilon_ratio=0.01, invert=True
                 )
 
-            # polyline = PotraceEngine.path_to_polylines(path)
             logger.debug("Converting path to SVG")
             raw_svg = polyline_to_svg(polyline, img.shape[1], img.shape[0])
             with open(

@@ -18,6 +18,5 @@ __all__ = [
     "draw_contours_for_debug",
     "find_image_contours",
     "vectorize_opencv",
-    "vectorize_potrace",
     "contours_to_polylines",
 ]
