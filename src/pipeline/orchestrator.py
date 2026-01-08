@@ -14,7 +14,6 @@ from collections.abc import Callable
 from typing import Any
 
 import cv2
-import numpy as np
 import potrace
 
 from src.ilda.ilda_3d import path_to_ilda_3d
@@ -26,15 +25,14 @@ from src.preprocessing.preprocessing import (
     mean_thresh_img,
     otsu_thresholding,
 )
-from src.vectorization import POTRACE_CONFIGS, vectorize_potrace, vectorize_opencv
+from src.vectorization import POTRACE_CONFIGS, vectorize_opencv
 
 logger = get_logger(__name__)
 
 
 def polyline_to_svg(
-        polyline: list[list[tuple[float, float]]],
-        width: int,
-        height: int) -> str:
+    polyline: list[list[tuple[float, float]]], width: int, height: int
+) -> str:
     """Convert a list of polylines to SVG format."""
     parts: list[str] = []
 
@@ -56,6 +54,7 @@ def polyline_to_svg(
     parts.append("</svg>")
 
     return parts
+
 
 def create_instructions(
     preprocessing: str, vectorization: str
@@ -208,16 +207,21 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
 
             ### TEST
             with Timer("vectorization", config=cfg_name):
-                polyline, _ = vectorize_opencv(processed_img, epsilon_ratio=0.01, invert=True)
+                polyline, _ = vectorize_opencv(
+                    processed_img, epsilon_ratio=0.01, invert=True
+                )
 
             # polyline = PotraceEngine.path_to_polylines(path)
             logger.debug("Converting path to SVG")
             raw_svg = polyline_to_svg(polyline, img.shape[1], img.shape[0])
-            with open(f"{svg_workspace}/{filename}_opencv_{cfg_name}.svg", "w") as svg_file:
+            with open(
+                f"{svg_workspace}/{filename}_opencv_{cfg_name}.svg", "w"
+            ) as svg_file:
                 svg_file.writelines("\n".join(raw_svg))
                 logger.info(f"Saved SVG: {svg_workspace}/{filename}_{cfg_name}.svg")
 
             logger.debug("Converting path to ILDA")
+            print(polyline)
             raw_ilda = path_to_ilda_3d(polyline)
             with open(f"{ilda_workspace}/{filename}_{cfg_name}.ild", "wb") as ilda_file:
                 for chunk in raw_ilda:
