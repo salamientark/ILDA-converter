@@ -2,7 +2,6 @@
 Reference from https://www.ilda.com/resources/StandardsDocs/ILDA_IDTF14_rev011.pdf
 """
 
-import potrace
 import struct
 
 
@@ -58,9 +57,7 @@ def ilda_header_3d(
     return header
 
 
-def ilda_body_3d(
-    polylines: list[list[tuple[float, float]]], z_value: int = 0
-) -> bytes:
+def ilda_body_3d(polylines: list[list[tuple[float, float]]], z_value: int = 0) -> tuple[bytes, int]:
     """Convert polylines to ILDA Format 0 body (3D point records).
 
     Extracts points from the polylines, automatically scales X and Y coordinates to fit
@@ -74,7 +71,7 @@ def ilda_body_3d(
             Must be in range -32768 to 32767.
 
     Returns:
-        bytes: Binary point records (8 bytes per point).
+        bytes, int : Binary point records (8 bytes per point) | Number of points
 
     Raises:
         ValueError: If polylines are empty, any polyline is empty, or z_value is out of range.
@@ -123,9 +120,12 @@ def ilda_body_3d(
     point_idx = 0
 
     for polyline_idx, vertices in enumerate(polyline_point_lists):
+        last_x: int = 0
+        last_y: int = 0
+
         for vert_idx, (x, y) in enumerate(vertices):
-            ilda_x = int((x - center_x) * scale)
-            ilda_y = int((y - center_y) * scale)
+            last_x = ilda_x = int((x - center_x) * scale)
+            last_y = ilda_y = int((y - center_y) * scale)
 
             ilda_x = max(-32768, min(32767, ilda_x))
             ilda_y = max(-32768, min(32767, ilda_y))
@@ -133,18 +133,27 @@ def ilda_body_3d(
             ilda_z = z_value
 
             status = 0x00
-            if polyline_idx > 0 and vert_idx == 0:
-                status |= 0x80
+            if vert_idx == 0:
+                status |= 0x40
 
             if point_idx == total_points - 1:
-                status |= 0x40
+                status |= 0x80
 
             color = 0
             body += struct.pack(">hhhBB", ilda_x, ilda_y, ilda_z, status, color)
 
             point_idx += 1
 
-    return body
+        body += struct.pack(">hhhBB", last_x, last_y, z_value, 0x40, 0)
+        body += struct.pack(">hhhBB", last_x, last_y, z_value, 0x40, 0)
+        body += struct.pack(">hhhBB", last_x, last_y, z_value, 0x40, 0)
+        body += struct.pack(">hhhBB", last_x, last_y, z_value, 0x40, 0)
+        total_points += 4
+        point_idx += 4
+        if point_idx == total_points:
+            body += struct.pack(">hhhBB", last_x, last_y, z_value, 0xC0, 0)
+
+    return body, total_points
 
 
 def ilda_footer_3d() -> bytes:
@@ -159,27 +168,25 @@ def ilda_footer_3d() -> bytes:
     return ilda_header_3d(num_points=0, frame_name="", company_name="")
 
 
-def path_to_ilda_3d(path: potrace.Path, z_value: int = 0) -> list[bytes]:
-    """
-    Convert a potrace path to ILDA Format 0 (3D coordinates).
+def path_to_ilda_3d(
+    polylines: list[list[tuple[float, float]]], z_value: int = 0
+) -> list[bytes]:
+    """Convert polylines to ILDA Format 0 (3D coordinates).
 
     Parameters:
-        path (potrace.Path): The potrace path to convert.
-        z_value (int): Z coordinate value for all points (default 0).
-            Must be in range -32768 to 32767.
+        polylines (list[list[tuple[float, float]]]): List of polylines. Each polyline is a
+            list of `(x, y)` points.
+        z_value (int): Z coordinate value for all points (default 0). Must be in range
+            -32768 to 32767.
 
     Returns:
-        list[bytes]: The ILDA representation as [header, body, footer].
+        list[bytes]: The ILDA representation as `[header, body, footer]`.
 
     Raises:
-        ValueError: If path has no curves or z_value is out of range.
+        ValueError: If `polylines` are empty, any polyline is empty, or `z_value` is out of range.
     """
     # Generate body first (may raise ValueError)
-    body = ilda_body_3d(path, z_value)
-
-    # Calculate number of points from body length
-    # Each point = 8 bytes (X:2 + Y:2 + Z:2 + status:1 + color:1)
-    num_points = len(body) // 8
+    body, num_points = ilda_body_3d(polylines, z_value)
 
     # Generate header with correct point count
     header = ilda_header_3d(num_points=num_points)
