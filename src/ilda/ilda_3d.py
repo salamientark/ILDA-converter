@@ -57,7 +57,9 @@ def ilda_header_3d(
     return header
 
 
-def ilda_body_3d(polylines: list[list[tuple[float, float]]], z_value: int = 0) -> tuple[bytes, int]:
+def ilda_body_3d(
+    polylines: list[list[tuple[float, float]]], z_value: int = 0
+) -> tuple[bytes, int]:
     """Convert polylines to ILDA Format 0 body (3D point records).
 
     Extracts points from the polylines, automatically scales X and Y coordinates to fit
