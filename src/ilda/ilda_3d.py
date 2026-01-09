@@ -138,11 +138,11 @@ def ilda_body_3d(
             if invert_y:
                 ilda_y = -ilda_y
 
-            last_x = ilda_x
-            last_y = ilda_y
-
             ilda_x = max(-32768, min(32767, ilda_x))
             ilda_y = max(-32768, min(32767, ilda_y))
+
+            last_x = ilda_x
+            last_y = ilda_y
 
             ilda_z = z_value
 
