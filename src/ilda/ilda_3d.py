@@ -179,7 +179,7 @@ def ilda_footer_3d() -> bytes:
     return ilda_header_3d(num_points=0, frame_name="", company_name="")
 
 
-def path_to_ilda_3d(
+def polylines_to_ilda(
     polylines: list[list[tuple[float, float]]],
     z_value: int = 0,
     invert_y: bool = True,

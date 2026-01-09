@@ -1,4 +1,4 @@
-from .ilda_3d import path_to_ilda_3d
+from .ilda_3d import polylines_to_ilda
 
 
-__all__ = ["path_to_ilda_3d"]
+__all__ = ["polylines_to_ilda"]
