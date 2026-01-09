@@ -58,7 +58,9 @@ def ilda_header_3d(
 
 
 def ilda_body_3d(
-    polylines: list[list[tuple[float, float]]], z_value: int = 0
+    polylines: list[list[tuple[float, float]]],
+    z_value: int = 0,
+    invert_y: bool = True,
 ) -> tuple[bytes, int]:
     """Convert polylines to ILDA Format 0 body (3D point records).
 
@@ -66,11 +68,16 @@ def ilda_body_3d(
     ILDA range (-32768 to 32767), sets Z coordinate to a fixed value, and applies
     blanking between polylines.
 
+    Note:
+        OpenCV-style image coordinates have Y increasing *downward*. Most ILDA renderers
+        treat +Y as *up*, so by default this function flips the Y axis via ``invert_y=True``.
+
     Parameters:
         polylines (list[list[tuple[float, float]]]): The polylines. Each polyline is a list of
             (x, y) points.
         z_value (int): Z coordinate value for all points (default 0).
             Must be in range -32768 to 32767.
+        invert_y (bool): Whether to invert the Y axis when mapping points to ILDA.
 
     Returns:
         bytes, int : Binary point records (8 bytes per point) | Number of points
@@ -126,8 +133,13 @@ def ilda_body_3d(
         last_y: int = 0
 
         for vert_idx, (x, y) in enumerate(vertices):
-            last_x = ilda_x = int((x - center_x) * scale)
-            last_y = ilda_y = int((y - center_y) * scale)
+            ilda_x = int((x - center_x) * scale)
+            ilda_y = int((y - center_y) * scale)
+            if invert_y:
+                ilda_y = -ilda_y
+
+            last_x = ilda_x
+            last_y = ilda_y
 
             ilda_x = max(-32768, min(32767, ilda_x))
             ilda_y = max(-32768, min(32767, ilda_y))
@@ -137,9 +149,6 @@ def ilda_body_3d(
             status = 0x00
             if vert_idx == 0:
                 status |= 0x40
-
-            if point_idx == total_points - 1:
-                status |= 0x80
 
             color = 0
             body += struct.pack(">hhhBB", ilda_x, ilda_y, ilda_z, status, color)
@@ -171,7 +180,9 @@ def ilda_footer_3d() -> bytes:
 
 
 def path_to_ilda_3d(
-    polylines: list[list[tuple[float, float]]], z_value: int = 0
+    polylines: list[list[tuple[float, float]]],
+    z_value: int = 0,
+    invert_y: bool = True,
 ) -> list[bytes]:
     """Convert polylines to ILDA Format 0 (3D coordinates).
 
@@ -180,6 +191,7 @@ def path_to_ilda_3d(
             list of `(x, y)` points.
         z_value (int): Z coordinate value for all points (default 0). Must be in range
             -32768 to 32767.
+        invert_y (bool): Whether to invert the Y axis when mapping points to ILDA.
 
     Returns:
         list[bytes]: The ILDA representation as `[header, body, footer]`.
@@ -188,7 +200,7 @@ def path_to_ilda_3d(
         ValueError: If `polylines` are empty, any polyline is empty, or `z_value` is out of range.
     """
     # Generate body first (may raise ValueError)
-    body, num_points = ilda_body_3d(polylines, z_value)
+    body, num_points = ilda_body_3d(polylines, z_value, invert_y=invert_y)
 
     # Generate header with correct point count
     header = ilda_header_3d(num_points=num_points)

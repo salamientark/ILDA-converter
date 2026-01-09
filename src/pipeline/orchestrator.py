@@ -217,7 +217,7 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
 
             with Timer("vectorization", config=cfg_name):
                 polyline, _ = vectorize_opencv(
-                    processed_img, epsilon_ratio=0.01, invert=True
+                    processed_img, epsilon_ratio=0.0001, invert=True
                 )
 
             logger.debug("Converting path to SVG")
