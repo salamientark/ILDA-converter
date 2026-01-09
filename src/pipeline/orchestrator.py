@@ -16,7 +16,7 @@ from typing import Any
 import cv2
 import potrace
 
-from src.ilda.ilda_3d import path_to_ilda_3d
+from src.ilda.ilda_3d import polylines_to_ilda
 from src.logger.logging_config import get_logger
 from src.logger.timing import Timer
 from src.preprocessing.preprocessing import (
@@ -217,7 +217,7 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
 
             with Timer("vectorization", config=cfg_name):
                 polyline, _ = vectorize_opencv(
-                    processed_img, epsilon_ratio=0.01, invert=True
+                    processed_img, epsilon_ratio=0.0001, invert=True
                 )
 
             logger.debug("Converting path to SVG")
@@ -227,7 +227,7 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
                 logger.info(f"Saved SVG: {svg_workspace}/{filename}_{cfg_name}.svg")
 
             logger.debug("Converting path to ILDA")
-            raw_ilda = path_to_ilda_3d(polyline)
+            raw_ilda = polylines_to_ilda(polyline)
             with open(f"{ilda_workspace}/{filename}_{cfg_name}.ild", "wb") as ilda_file:
                 for chunk in raw_ilda:
                     ilda_file.write(chunk)
