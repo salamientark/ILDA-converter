@@ -66,9 +66,12 @@ def _choose_blanking_bit(statuses: list[int]) -> int:
 
     ILDA spec typically uses 0x80 for blanking and 0x40 for "last point".
 
-    This repository's current encoder (see `src/ilda/ilda_3d.py`) uses 0x40 as a
+    This repository's current encoder (see `src/ilda/ilda_3d.py`) uses **0x40** as a
     blanking marker for "pen-up" moves at the start of each polyline and for
-    dwell/padding points.
+    dwell/padding points. It also writes a final point marked as ``0xC0`` (0x80 | 0x40).
+
+    Because ``0x80`` may appear only on that final ``0xC0`` record, we must prefer
+    ``0x40`` when it is present.
 
     Parameters:
         statuses (list[int]): Status bytes from point records.
@@ -76,16 +79,8 @@ def _choose_blanking_bit(statuses: list[int]) -> int:
     Returns:
         int: The bit mask to interpret as blanking.
     """
-    # If we see any point that has blanking (0x80) without also being marked as
-    # last-point (0x40), prefer the spec-conformant blanking bit.
-    if any((status & 0x80) and not (status & 0x40) for status in statuses):
-        return 0x80
-
-    # If there are no 0x80 blanking points at all, and 0x40 appears on non-final
-    # points, treat 0x40 as blanking (matches this repo's writer).
-    if not any(status & 0x80 for status in statuses):
-        if len(statuses) > 1 and any(status & 0x40 for status in statuses[:-1]):
-            return 0x40
+    if any(status & 0x40 for status in statuses):
+        return 0x40
 
     return 0x80
 
