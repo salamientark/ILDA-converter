@@ -27,7 +27,7 @@ from src.preprocessing.preprocessing import (
 )
 from src.vectorization import POTRACE_CONFIGS, vectorize_opencv
 from src.ilda.ilda_to_polylines import ilda_to_polylines
-from src.debug.utils import draw_svg
+from src.debug.draw_svg import draw_svg
 
 logger = get_logger(__name__)
 
