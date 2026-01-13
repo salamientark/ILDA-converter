@@ -27,6 +27,7 @@ from src.preprocessing.preprocessing import (
 )
 from src.vectorization import POTRACE_CONFIGS, vectorize_opencv
 from src.ilda.ilda_to_polylines import ilda_to_polylines
+from src.debug.utils import draw_svg
 
 logger = get_logger(__name__)
 
@@ -229,7 +230,7 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
 
             with Timer("vectorization", config=cfg_name):
                 polyline, _ = vectorize_opencv(
-                    processed_img, epsilon_ratio=0.0001, invert=True
+                    processed_img, epsilon_ratio=0.00001, invert=True
                 )
 
             logger.debug("Converting path to SVG")
@@ -253,6 +254,8 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
                 center_x=x_offset,
                 center_y=y_offset,
             )
+            draw_svg(polylines_debug, width=img.shape[1], height=img.shape[0], point_radius=2.0)
+
 
             print(f"DEBUG scale_x: {x_offset} | scale_y: {y_offset}")
             raw_svg_debug = polyline_to_svg(polylines_debug, img.shape[1], img.shape[0])
