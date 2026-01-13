@@ -61,7 +61,7 @@ def ilda_body_3d(
     polylines: list[list[tuple[float, float]]],
     z_value: int = 0,
     invert_y: bool = True,
-) -> tuple[bytes, int]:
+) -> tuple[bytes, int, float, float, float]:
     """Convert polylines to ILDA Format 0 body (3D point records).
 
     Extracts points from the polylines, automatically scales X and Y coordinates to fit
@@ -80,7 +80,8 @@ def ilda_body_3d(
         invert_y (bool): Whether to invert the Y axis when mapping points to ILDA.
 
     Returns:
-        bytes, int : Binary point records (8 bytes per point) | Number of points
+        bytes, int : Binary point records (8 bytes per point) | Number of points | Scale factor used | Center X offset | Center Y offset
+                     Scale and offset are used to compute back ilda to svg
 
     Raises:
         ValueError: If polylines are empty, any polyline is empty, or z_value is out of range.
@@ -120,6 +121,8 @@ def ilda_body_3d(
         scale = 65535 / y_range * 0.9
     else:
         scale = 1.0
+
+    print(f"DEBUG original scale: {scale}")
 
     center_x = (min_x + max_x) / 2
     center_y = (min_y + max_y) / 2
@@ -164,7 +167,7 @@ def ilda_body_3d(
         if point_idx == total_points:
             body += struct.pack(">hhhBB", last_x, last_y, z_value, 0xC0, 0)
 
-    return body, total_points
+    return body, total_points, scale, center_x, center_y
 
 
 def ilda_footer_3d() -> bytes:
@@ -183,7 +186,7 @@ def polylines_to_ilda(
     polylines: list[list[tuple[float, float]]],
     z_value: int = 0,
     invert_y: bool = True,
-) -> list[bytes]:
+) -> tuple[list[bytes], float, float, float]:
     """Convert polylines to ILDA Format 0 (3D coordinates).
 
     Parameters:
@@ -194,13 +197,15 @@ def polylines_to_ilda(
         invert_y (bool): Whether to invert the Y axis when mapping points to ILDA.
 
     Returns:
-        list[bytes]: The ILDA representation as `[header, body, footer]`.
+        tuple[list[bytes], float, float, float]: List of ILDA byte chunks (header, body, footer) | Scale factor used | Center X offset | Center Y offset
 
     Raises:
         ValueError: If `polylines` are empty, any polyline is empty, or `z_value` is out of range.
     """
     # Generate body first (may raise ValueError)
-    body, num_points = ilda_body_3d(polylines, z_value, invert_y=invert_y)
+    body, num_points, scale, center_x, center_y = ilda_body_3d(
+        polylines, z_value, invert_y=invert_y
+    )
 
     # Generate header with correct point count
     header = ilda_header_3d(num_points=num_points)
@@ -209,4 +214,4 @@ def polylines_to_ilda(
     footer = ilda_footer_3d()
 
     # Return as list of byte chunks
-    return [header, body, footer]
+    return [header, body, footer], scale, center_x, center_y
