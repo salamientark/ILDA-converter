@@ -254,8 +254,12 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
                 center_x=x_offset,
                 center_y=y_offset,
             )
-            draw_svg(polylines_debug, width=img.shape[1], height=img.shape[0], point_radius=2.0)
-
+            draw_svg(
+                polylines_debug,
+                width=img.shape[1],
+                height=img.shape[0],
+                point_radius=2.0,
+            )
 
             print(f"DEBUG scale_x: {x_offset} | scale_y: {y_offset}")
             raw_svg_debug = polyline_to_svg(polylines_debug, img.shape[1], img.shape[0])
