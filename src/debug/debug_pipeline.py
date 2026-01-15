@@ -28,55 +28,10 @@ from src.preprocessing.preprocessing import (
 from src.vectorization import POTRACE_CONFIGS, vectorize_opencv
 from src.ilda.ilda_to_polylines import ilda_to_polylines
 from src.debug.draw_svg import draw_svg
+from .polyline_to_svg import polyline_to_svg
+from .get_polylines_info import get_polylines_info
 
 logger = get_logger(__name__)
-
-
-def rescale_polylines(
-    polylines: list[list[tuple[float, float]]], scale_x: float, scale_y: float
-) -> list[list[tuple[float, float]]]:
-    for polyline_idx, polyline in enumerate(polylines):
-        for vert_idx, (x, y) in enumerate(polyline):
-            rescaled_x = (x + 32767) * scale_x
-            rescaled_y = (y + 32767) * scale_y
-            polylines[polyline_idx][vert_idx] = (rescaled_x, rescaled_y)
-    return polylines
-
-
-def polyline_to_svg(
-    polylines: list[list[tuple[float, float]]], width: int, height: int
-) -> list[str]:
-    """Convert a list of polylines to a minimal SVG.
-
-    Parameters:
-        polylines (list[list[tuple[float, float]]]): List of polylines. Each polyline
-            is a list of `(x, y)` points.
-        width (int): Output SVG width.
-        height (int): Output SVG height.
-
-    Returns:
-        list[str]: SVG lines suitable for writing with `"\n".join(...)`.
-    """
-    parts: list[str] = []
-
-    parts.append(
-        f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">'
-    )
-    parts.append('<path d="')
-
-    for line in polylines:
-        start_x, start_y = line[0]
-        parts.append(f"M {start_x},{start_y}")
-
-        for x, y in line[1:]:
-            parts.append(f"L {x},{y}")
-
-        parts.append("Z")
-
-    parts.append('" stroke="black" fill="none"/>')
-    parts.append("</svg>")
-
-    return parts
 
 
 def create_instructions(
@@ -271,7 +226,13 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
                     f"Saved SVG: {svg_workspace}/{filename}_debug_{cfg_name}.svg"
                 )
 
+            point_nbr, polyline_nbr = get_polylines_info(polylines_debug)
+            print(
+                f"DEBUG polylines_debug: {polyline_nbr} polylines, {point_nbr} points"
+            )
+
             raw_ilda_debug, _, _, _ = polylines_to_ilda(polylines_debug)
+            print(f"DEBUG type of raw_ilda_debug: {type(raw_ilda_debug)}", flush=True)
             with open(
                 f"{ilda_workspace}/{filename}_debug_{cfg_name}.ild", "wb"
             ) as ilda_file:
