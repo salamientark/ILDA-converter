@@ -122,8 +122,6 @@ def ilda_body_3d(
     else:
         scale = 1.0
 
-    print(f"DEBUG original scale: {scale}")
-
     center_x = (min_x + max_x) / 2
     center_y = (min_y + max_y) / 2
 

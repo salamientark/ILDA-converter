@@ -20,6 +20,8 @@ def polyline_to_svg(
     parts.append('<path d="')
 
     for line in polylines:
+        if not line:
+            continue
         start_x, start_y = line[0]
         parts.append(f"M {start_x},{start_y}")
 
