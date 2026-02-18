@@ -11,3 +11,8 @@ dependencies = [
     "potracer>=0.0.4",
     "ruff>=0.14.10",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]

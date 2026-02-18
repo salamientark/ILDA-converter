@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from src.logger.logging_config import get_logger
 from src.postprocessing.laser_path import LaserPath, from_polylines
+from src.postprocessing.weld_vertices import weld_vertices
 
 logger = get_logger(__name__)
 
@@ -24,7 +25,7 @@ def optimize(
 ) -> LaserPath:
     """Run the full optimization pipeline on a polylines structure.
 
-    Phase 0 (this stub) only converts the input to a LaserPath and returns it.
+    Phase 1 runs weld_vertices to snap near-coincident endpoints.
     Subsequent phases will extend this function.
 
     Args:
@@ -38,9 +39,11 @@ def optimize(
     """
     logger.debug("optimize: start, %d polylines", len(polylines))
 
+    # Phase 1: weld_vertices, eulerian_path
+    polylines = weld_vertices(polylines)
+
     path = from_polylines(polylines, r=r, g=g, b=b)
 
-    # Phase 1: weld_vertices, eulerian_path
     # Phase 2: resample_path, apply_corner_dwell
     # Phase 3: add_blanking_anchors, shift_color_signal
 
