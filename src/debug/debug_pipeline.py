@@ -187,7 +187,7 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
                 polyline, _ = vectorize_opencv(
                     processed_img,
                     epsilon_ratio=trace_cfg.get("epsilon_ratio", 0.00001),
-                    invert=True
+                    invert=True,
                 )
 
             logger.debug("Converting path to SVG")

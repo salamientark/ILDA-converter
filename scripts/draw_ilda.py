@@ -123,7 +123,9 @@ def main() -> None:
         point_nbr, polyline_nbr = get_polylines_info(rescaled_polylines)
         print(f"Rescaled polylines: {polyline_nbr} polylines, {point_nbr} points")
 
-        raw_svg_rescaled = polyline_to_svg(rescaled_polylines, width=WIDTH, height=HEIGHT)
+        raw_svg_rescaled = polyline_to_svg(
+            rescaled_polylines, width=WIDTH, height=HEIGHT
+        )
 
         # Save SVG to file
         os.makedirs("./tmp", exist_ok=True)
