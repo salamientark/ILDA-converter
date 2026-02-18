@@ -15,16 +15,16 @@ import os
 from pathlib import Path
 
 
-WIDTH=1280
-HEIGHT=720
+WIDTH = 1280
+HEIGHT = 720
 
 
 def _get_scale(
     polylines: list[list[tuple[float, float]]],
-    *, 
+    *,
     width: float = 1600,
     height: float = 900,
-    ) -> float:
+) -> float:
     """
     Compute a uniform scale factor to fit the polylines within the given width and height.
 
@@ -75,6 +75,7 @@ def _rescale_polyline(
         new_polylines.append(new_polyline)
     return new_polylines
 
+
 def _ensure_project_root_on_path() -> None:
     project_root = Path(__file__).resolve().parents[1]
     project_root_str = str(project_root)
@@ -114,32 +115,22 @@ def main() -> None:
         polylines = ilda_to_polylines(data)
         scale = _get_scale(polylines, width=WIDTH, height=HEIGHT)
 
-
         print(f"Computed scale factor: {scale}")
         rescaled_polylines = _rescale_polyline(polylines, scale)
         point_nbr, polyline_nbr = get_polylines_info(rescaled_polylines)
-        print(
-            f"Rescaled polylines: {polyline_nbr} polylines, {point_nbr} points"
-        )
-
+        print(f"Rescaled polylines: {polyline_nbr} polylines, {point_nbr} points")
 
         raw_svg_rescaled = polyline_to_svg(polylines, width=WIDTH, height=HEIGHT)
 
         # Save SVG to file
         os.makedirs("./tmp", exist_ok=True)
         filename = os.path.splitext(os.path.basename(args.input))[0]
-        with open(
-            f"./tmp/{filename}.svg", "w"
-        ) as svg_file:
+        with open(f"./tmp/{filename}.svg", "w") as svg_file:
             svg_file.writelines("\n".join(raw_svg_rescaled))
-            logger.info(
-                f"Saved SVG: tmp/{filename}.svg"
-            )
+            logger.info(f"Saved SVG: tmp/{filename}.svg")
 
         # Save as ilda file
-        rescaled_ilda, _, _, _ = polylines_to_ilda(
-            rescaled_polylines
-        )
+        rescaled_ilda, _, _, _ = polylines_to_ilda(rescaled_polylines)
         with open(f"./tmp/{filename}_rescaled.ild", "wb") as ilda_file:
             for chunk in rescaled_ilda:
                 ilda_file.write(chunk)
