@@ -185,7 +185,9 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
 
             with Timer("vectorization", config=cfg_name):
                 polyline, _ = vectorize_opencv(
-                    processed_img, epsilon_ratio=0.00001, invert=True
+                    processed_img,
+                    epsilon_ratio=trace_cfg.get("epsilon_ratio", 0.00001),
+                    invert=True
                 )
 
             logger.debug("Converting path to SVG")
@@ -196,15 +198,15 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
 
             logger.debug("Converting path to ILDA")
             raw_ilda, scale, x_offset, y_offset = polylines_to_ilda(polyline)
+            ilda_bytes = b"".join(raw_ilda)
             with open(f"{ilda_workspace}/{filename}_{cfg_name}.ild", "wb") as ilda_file:
-                for chunk in raw_ilda:
-                    ilda_file.write(chunk)
+                ilda_file.write(ilda_bytes)
                 logger.info(f"Saved ILDA: {ilda_workspace}/{filename}_{cfg_name}.ild")
 
             # PROCESS ILDA BACKWARD FOR DEBUG
             logger.debug("Converting ILDA back to polylines for verification")
             polylines_debug = ilda_to_polylines(
-                open(f"{ilda_workspace}/{filename}_{cfg_name}.ild", "rb").read(),
+                ilda_bytes,
                 scale=scale,
                 center_x=x_offset,
                 center_y=y_offset,
@@ -216,7 +218,7 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
                 point_radius=2.0,
             )
 
-            print(f"DEBUG scale_x: {x_offset} | scale_y: {y_offset}")
+            print(f"DEBUG scale: {scale} | center_x: {x_offset} | center_y: {y_offset}")
             raw_svg_debug = polyline_to_svg(polylines_debug, img.shape[1], img.shape[0])
             with open(
                 f"{svg_workspace}/{filename}_debug_{cfg_name}.svg", "w"
