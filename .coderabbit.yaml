@@ -30,9 +30,6 @@ reviews:
   # Collapse detailed walkthrough by default
   collapse_walkthrough: false
 
-  # Detailed walkthrough of all changes
-  walkthrough: true
-
   # Auto-review settings
   auto_review:
     enabled: true
@@ -96,35 +93,35 @@ reviews:
     - label: "laser-safety"
       instructions: "Apply when changes affect coordinate bounds, clipping, or output values that control laser hardware."
 
+  # Tools configuration — enable all available analyzers
+  tools:
+    github-checks:
+      enabled: true
+    # AST-based analysis
+    ast-grep:
+      enabled: true
+      essential_rules: true
+      # Enforce no bare except, no print in lib code
+      rule_dirs: []
+    # Dependency review
+    ruff:
+      enabled: true
+    # Shell script linting (for any scripts/)
+    shellcheck:
+      enabled: true
+    # YAML linting
+    yamllint:
+      enabled: true
+    # Markdown linting
+    markdownlint:
+      enabled: true
+    # Secret scanning
+    gitleaks:
+      enabled: true
+    # GitHub Actions linting
+    actionlint:
+      enabled: true
 # Chat configuration
 chat:
   auto_reply: true
 
-# Tools configuration — enable all available analyzers
-tools:
-  github-checks:
-    enabled: true
-  # AST-based analysis
-  ast-grep:
-    enabled: true
-    essential_rules: true
-    # Enforce no bare except, no print in lib code
-    rule_dirs: []
-  # Dependency review
-  ruff:
-    enabled: true
-  # Shell script linting (for any scripts/)
-  shellcheck:
-    enabled: true
-  # YAML linting
-  yamllint:
-    enabled: true
-  # Markdown linting
-  markdownlint:
-    enabled: true
-  # Secret scanning
-  gitleaks:
-    enabled: true
-  # GitHub Actions linting
-  actionlint:
-    enabled: true
