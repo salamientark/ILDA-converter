@@ -69,15 +69,27 @@ def create_instructions(
         pre for pre in preprocessing_map if preprocessing in (pre[0], "all")
     ]
 
+    if preprocessing != "all" and not preprocessing_instructions:
+        valid = [name for name, _ in preprocessing_map] + ["all"]
+        raise ValueError(
+            f"Invalid preprocessing value {preprocessing!r}. Valid options: {valid}"
+        )
+
     if vectorization == "all":
         vectorization_instructions = list(POTRACE_CONFIGS.items())
     else:
         config_key = vectorization_name_map.get(vectorization, vectorization)
+        if config_key not in POTRACE_CONFIGS:
+            valid = list(POTRACE_CONFIGS.keys()) + ["all"]
+            raise ValueError(
+                f"Invalid vectorization value {vectorization!r}. Valid options: {valid}"
+            )
         vectorization_instructions = [(config_key, POTRACE_CONFIGS[config_key])]
 
     return preprocessing_instructions, vectorization_instructions
 
 
+# TODO: keep for future Potrace SVG export — remove when unused
 def path_to_svg(path: potrace.Path, width: int, height: int) -> list[str]:
     """Convert a potrace path to SVG format.
 
@@ -129,25 +141,26 @@ def save_img(workspace: str, filename: str, img: cv2.typing.MatLike) -> None:
         filename (str): Output filename.
         img (cv2.typing.MatLike): Image to save.
     """
-    if workspace.endswith("/"):
-        workspace = workspace[:-1]
+    path = os.path.join(workspace, filename)
+    ok = cv2.imwrite(path, img)
+    if not ok:
+        logger.error(f"Failed to write image: {path}")
+        raise IOError(f"cv2.imwrite failed for {path}")
+    logger.debug(f"Image saved: {path}")
 
-    cv2.imwrite(f"{workspace}/{filename}", img)
-    logger.debug(f"Image saved: {workspace}/{filename}")
 
-
-def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
+def run_pipeline(input_path: str, preprocessing: str, vectorization: str) -> None:
     """Execute the complete image processing pipeline from bitmap to vector.
 
     Parameters:
-        input (str): Path to the input image file.
+        input_path (str): Path to the input image file.
         preprocessing (str): Preprocessing method selection.
         vectorization (str): Potrace vectorization config selection.
 
     Raises:
         FileNotFoundError: If the input image file does not exist or cannot be read.
     """
-    base_filename = os.path.splitext(os.path.basename(input))[0]
+    base_filename = os.path.splitext(os.path.basename(input_path))[0]
     pre_workspace = f"data/debug/{base_filename}/preprocessing"
     svg_workspace = f"data/debug/{base_filename}/svg"
     ilda_workspace = f"data/debug/{base_filename}/ilda"
@@ -162,9 +175,9 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
         vectorization,
     )
 
-    img = cv2.imread(input, cv2.IMREAD_GRAYSCALE)
+    img = cv2.imread(input_path, cv2.IMREAD_GRAYSCALE)
     if img is None:
-        raise FileNotFoundError(f"Input image not found: {input}")
+        raise FileNotFoundError(f"Input image not found: {input_path}")
 
     logger.info(f"Image loaded: {img.shape[1]}x{img.shape[0]} pixels")
 
@@ -218,7 +231,9 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
                 point_radius=2.0,
             )
 
-            print(f"DEBUG scale: {scale} | center_x: {x_offset} | center_y: {y_offset}")
+            logger.debug(
+                f"scale: {scale} | x_offset: {x_offset} | y_offset: {y_offset}"
+            )
             raw_svg_debug = polyline_to_svg(polylines_debug, img.shape[1], img.shape[0])
             with open(
                 f"{svg_workspace}/{filename}_debug_{cfg_name}.svg", "w"
@@ -229,17 +244,16 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
                 )
 
             point_nbr, polyline_nbr = get_polylines_info(polylines_debug)
-            print(
-                f"DEBUG polylines_debug: {polyline_nbr} polylines, {point_nbr} points"
+            logger.debug(
+                f"polylines_debug: {polyline_nbr} polylines, {point_nbr} points"
             )
 
             raw_ilda_debug, _, _, _ = polylines_to_ilda(polylines_debug)
-            print(f"DEBUG type of raw_ilda_debug: {type(raw_ilda_debug)}", flush=True)
+            logger.debug(f"type of raw_ilda_debug: {type(raw_ilda_debug)}")
             with open(
                 f"{ilda_workspace}/{filename}_debug_{cfg_name}.ild", "wb"
             ) as ilda_file:
-                for chunk in raw_ilda_debug:
-                    ilda_file.write(chunk)
+                ilda_file.write(b"".join(raw_ilda_debug))
                 logger.info(
                     f"Saved ILDA: {ilda_workspace}/{filename}_debug_{cfg_name}.ild"
                 )

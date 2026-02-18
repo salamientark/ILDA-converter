@@ -128,6 +128,9 @@ def ilda_to_polylines(
     if not isinstance(data, (bytes, bytearray, memoryview)):
         raise TypeError(f"data must be bytes-like, got {type(data)!r}")
 
+    if scale is not None and scale <= 0:
+        raise ValueError(f"scale must be > 0, got {scale}")
+
     buf = bytes(data)
     offset = 0
 
@@ -188,9 +191,6 @@ def ilda_to_polylines(
 
     polylines: list[list[tuple[float, float]]] = []
     current: list[tuple[float, float]] = []
-
-    if scale is not None and scale <= 0:
-        raise ValueError(f"scale must be > 0, got {scale}")
 
     for x, y, status in points:
         if status & blank_bit and current:

@@ -227,8 +227,7 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
                 logger.info(f"Saved SVG: {svg_workspace}/{filename}_{cfg_name}.svg")
 
             logger.debug("Converting path to ILDA")
-            raw_ilda = polylines_to_ilda(polyline)
+            raw_ilda, _, _, _ = polylines_to_ilda(polyline)
             with open(f"{ilda_workspace}/{filename}_{cfg_name}.ild", "wb") as ilda_file:
-                for chunk in raw_ilda:
-                    ilda_file.write(chunk)
+                ilda_file.write(b"".join(raw_ilda))
                 logger.info(f"Saved ILDA: {ilda_workspace}/{filename}_{cfg_name}.ild")
