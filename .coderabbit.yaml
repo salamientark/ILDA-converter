@@ -1,0 +1,130 @@
+# CodeRabbit Configuration
+# https://docs.coderabbit.ai/guides/configure-coderabbit
+
+language: "en-US"
+
+# Tone for review comments
+tone_instructions: "Be precise, technical, and direct. Focus on correctness, performance, and maintainability."
+
+early_access: false
+
+# Enable free-tier features
+enable_free_tier: true
+
+reviews:
+  # Use assertive profile for strict reviews
+  profile: "assertive"
+
+  # Automatically request reviews on PRs
+  request_changes_workflow: true
+
+  # High-level summary of PR changes
+  high_level_summary: true
+
+  # Poem about the PR (disable for professional context)
+  poem: false
+
+  # Review commit messages for conventional commit format
+  review_status: true
+
+  # Collapse detailed walkthrough by default
+  collapse_walkthrough: false
+
+  # Detailed walkthrough of all changes
+  walkthrough: true
+
+  # Auto-review settings
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    # Ignore draft PRs
+    ignore_title_keywords:
+      - "WIP"
+      - "wip"
+      - "Draft"
+      - "draft"
+    # Review base branch changes
+    base_branches:
+      - "main"
+      - "develop"
+
+  # Path-specific instructions
+  path_instructions:
+    - path: "src/**/*.py"
+      instructions: |
+        - Enforce PEP 8 and ruff linting rules strictly.
+        - All public functions and classes MUST have docstrings (Google style preferred).
+        - Enforce type annotations on all function signatures (parameters and return types).
+        - Flag any use of mutable default arguments.
+        - Flag functions longer than 50 lines — suggest decomposition.
+        - Ensure numpy arrays are typed with explicit dtype where possible.
+        - Check for proper error handling; bare `except:` is not acceptable.
+        - Verify that OpenCV (cv2) resources are properly released.
+        - Check for hardcoded paths — use pathlib.Path instead of string concatenation.
+        - Ensure no print() calls in library code — use logging instead.
+
+    - path: "tests/**/*.py"
+      instructions: |
+        - Every new function or class in src/ MUST have corresponding tests.
+        - Enforce descriptive test names: test_<function>_<scenario>_<expected>.
+        - Flag tests without assertions.
+        - Encourage use of pytest fixtures for reusable setup.
+        - Parametrize tests where multiple similar cases are tested.
+
+    - path: "*.py"
+      instructions: |
+        - Enforce type annotations on all function signatures.
+        - Ensure proper docstrings on all public APIs.
+
+    - path: "pyproject.toml"
+      instructions: |
+        - Verify dependencies are pinned to minimum versions (>=X.Y.Z).
+        - Ensure the project metadata (description, license, authors) is complete.
+
+    - path: ".github/workflows/*.yml"
+      instructions: |
+        - Ensure all actions are pinned to specific commit SHAs or version tags.
+        - Verify no secrets are hardcoded.
+        - Confirm Python version matches pyproject.toml requirements.
+
+  # Labeling strategy
+  labeling_instructions:
+    - label: "breaking-change"
+      instructions: "Apply when public API signatures change or ILDA output format changes."
+    - label: "performance"
+      instructions: "Apply when changes affect image processing pipeline speed or memory usage."
+    - label: "laser-safety"
+      instructions: "Apply when changes affect coordinate bounds, clipping, or output values that control laser hardware."
+
+# Chat configuration
+chat:
+  auto_reply: true
+
+# Tools configuration — enable all available analyzers
+tools:
+  github-checks:
+    enabled: true
+  # AST-based analysis
+  ast-grep:
+    enabled: true
+    essential_rules: true
+    # Enforce no bare except, no print in lib code
+    rule_dirs: []
+  # Dependency review
+  ruff:
+    enabled: true
+  # Shell script linting (for any scripts/)
+  shellcheck:
+    enabled: true
+  # YAML linting
+  yamllint:
+    enabled: true
+  # Markdown linting
+  markdownlint:
+    enabled: true
+  # Secret scanning
+  gitleaks:
+    enabled: true
+  # GitHub Actions linting
+  actionlint:
+    enabled: true
