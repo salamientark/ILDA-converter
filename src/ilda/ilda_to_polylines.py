@@ -196,6 +196,8 @@ def ilda_to_polylines(
         if status & blank_bit and current:
             polylines.append(current)
             current = []
+        if status & blank_bit:
+            continue
 
         x_f = float(x)
         y_f = float(y)
