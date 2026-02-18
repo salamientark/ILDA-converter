@@ -1,8 +1,9 @@
 [project]
 name = "ilda"
 version = "0.1.0"
-description = "Add your description here"
+description = "Python toolkit for converting bitmap and vector images to ILDA format for laser show control systems"
 readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.14"
 dependencies = [
     "matplotlib>=3.10.8",

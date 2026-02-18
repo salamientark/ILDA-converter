@@ -26,44 +26,12 @@ from src.preprocessing.preprocessing import (
     otsu_thresholding,
 )
 from src.vectorization import POTRACE_CONFIGS, vectorize_opencv
+from src.ilda.ilda_to_polylines import ilda_to_polylines
+from src.debug.draw_svg import draw_svg
+from .polyline_to_svg import polyline_to_svg
+from .get_polylines_info import get_polylines_info
 
 logger = get_logger(__name__)
-
-
-def polyline_to_svg(
-    polylines: list[list[tuple[float, float]]], width: int, height: int
-) -> list[str]:
-    """Convert a list of polylines to a minimal SVG.
-
-    Parameters:
-        polylines (list[list[tuple[float, float]]]): List of polylines. Each polyline
-            is a list of `(x, y)` points.
-        width (int): Output SVG width.
-        height (int): Output SVG height.
-
-    Returns:
-        list[str]: SVG lines suitable for writing with `"\n".join(...)`.
-    """
-    parts: list[str] = []
-
-    parts.append(
-        f'<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">'
-    )
-    parts.append('<path d="')
-
-    for line in polylines:
-        start_x, start_y = line[0]
-        parts.append(f"M {start_x},{start_y}")
-
-        for x, y in line[1:]:
-            parts.append(f"L {x},{y}")
-
-        parts.append("Z")
-
-    parts.append('" stroke="black" fill="none"/>')
-    parts.append("</svg>")
-
-    return parts
 
 
 def create_instructions(
@@ -101,15 +69,27 @@ def create_instructions(
         pre for pre in preprocessing_map if preprocessing in (pre[0], "all")
     ]
 
+    if preprocessing != "all" and not preprocessing_instructions:
+        valid = [name for name, _ in preprocessing_map] + ["all"]
+        raise ValueError(
+            f"Invalid preprocessing value {preprocessing!r}. Valid options: {valid}"
+        )
+
     if vectorization == "all":
         vectorization_instructions = list(POTRACE_CONFIGS.items())
     else:
         config_key = vectorization_name_map.get(vectorization, vectorization)
+        if config_key not in POTRACE_CONFIGS:
+            valid = list(POTRACE_CONFIGS.keys()) + ["all"]
+            raise ValueError(
+                f"Invalid vectorization value {vectorization!r}. Valid options: {valid}"
+            )
         vectorization_instructions = [(config_key, POTRACE_CONFIGS[config_key])]
 
     return preprocessing_instructions, vectorization_instructions
 
 
+# TODO: keep for future Potrace SVG export — remove when unused
 def path_to_svg(path: potrace.Path, width: int, height: int) -> list[str]:
     """Convert a potrace path to SVG format.
 
@@ -161,30 +141,31 @@ def save_img(workspace: str, filename: str, img: cv2.typing.MatLike) -> None:
         filename (str): Output filename.
         img (cv2.typing.MatLike): Image to save.
     """
-    if workspace.endswith("/"):
-        workspace = workspace[:-1]
+    path = os.path.join(workspace, filename)
+    ok = cv2.imwrite(path, img)
+    if not ok:
+        logger.error(f"Failed to write image: {path}")
+        raise IOError(f"cv2.imwrite failed for {path}")
+    logger.debug(f"Image saved: {path}")
 
-    cv2.imwrite(f"{workspace}/{filename}", img)
-    logger.debug(f"Image saved: {workspace}/{filename}")
 
-
-def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
+def run_pipeline(input_path: str, preprocessing: str, vectorization: str) -> None:
     """Execute the complete image processing pipeline from bitmap to vector.
 
     Parameters:
-        input (str): Path to the input image file.
+        input_path (str): Path to the input image file.
         preprocessing (str): Preprocessing method selection.
         vectorization (str): Potrace vectorization config selection.
 
     Raises:
         FileNotFoundError: If the input image file does not exist or cannot be read.
     """
-    base_filename = os.path.splitext(os.path.basename(input))[0]
-    pre_workspace = f"data/{base_filename}/preprocessing"
-    svg_workspace = f"data/{base_filename}/svg"
-    ilda_workspace = f"data/{base_filename}/ilda"
+    base_filename = os.path.splitext(os.path.basename(input_path))[0]
+    pre_workspace = f"data/debug/{base_filename}/preprocessing"
+    svg_workspace = f"data/debug/{base_filename}/svg"
+    ilda_workspace = f"data/debug/{base_filename}/ilda"
 
-    os.makedirs(f"data/{base_filename}", exist_ok=True)
+    os.makedirs(f"data/debug/{base_filename}", exist_ok=True)
     os.makedirs(pre_workspace, exist_ok=True)
     os.makedirs(svg_workspace, exist_ok=True)
     os.makedirs(ilda_workspace, exist_ok=True)
@@ -194,9 +175,9 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
         vectorization,
     )
 
-    img = cv2.imread(input, cv2.IMREAD_GRAYSCALE)
+    img = cv2.imread(input_path, cv2.IMREAD_GRAYSCALE)
     if img is None:
-        raise FileNotFoundError(f"Input image not found: {input}")
+        raise FileNotFoundError(f"Input image not found: {input_path}")
 
     logger.info(f"Image loaded: {img.shape[1]}x{img.shape[0]} pixels")
 
@@ -217,7 +198,9 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
 
             with Timer("vectorization", config=cfg_name):
                 polyline, _ = vectorize_opencv(
-                    processed_img, epsilon_ratio=0.0001, invert=True
+                    processed_img,
+                    epsilon_ratio=trace_cfg.get("epsilon_ratio", 0.00001),
+                    invert=True,
                 )
 
             logger.debug("Converting path to SVG")
@@ -227,7 +210,50 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
                 logger.info(f"Saved SVG: {svg_workspace}/{filename}_{cfg_name}.svg")
 
             logger.debug("Converting path to ILDA")
-            raw_ilda, _, _, _ = polylines_to_ilda(polyline)
+            raw_ilda, scale, x_offset, y_offset = polylines_to_ilda(polyline)
+            ilda_bytes = b"".join(raw_ilda)
             with open(f"{ilda_workspace}/{filename}_{cfg_name}.ild", "wb") as ilda_file:
-                ilda_file.write(b"".join(raw_ilda))
+                ilda_file.write(ilda_bytes)
                 logger.info(f"Saved ILDA: {ilda_workspace}/{filename}_{cfg_name}.ild")
+
+            # PROCESS ILDA BACKWARD FOR DEBUG
+            logger.debug("Converting ILDA back to polylines for verification")
+            polylines_debug = ilda_to_polylines(
+                ilda_bytes,
+                scale=scale,
+                center_x=x_offset,
+                center_y=y_offset,
+            )
+            draw_svg(
+                polylines_debug,
+                width=img.shape[1],
+                height=img.shape[0],
+                point_radius=2.0,
+            )
+
+            logger.debug(
+                f"scale: {scale} | x_offset: {x_offset} | y_offset: {y_offset}"
+            )
+            raw_svg_debug = polyline_to_svg(polylines_debug, img.shape[1], img.shape[0])
+            with open(
+                f"{svg_workspace}/{filename}_debug_{cfg_name}.svg", "w"
+            ) as svg_file:
+                svg_file.writelines("\n".join(raw_svg_debug))
+                logger.info(
+                    f"Saved SVG: {svg_workspace}/{filename}_debug_{cfg_name}.svg"
+                )
+
+            point_nbr, polyline_nbr = get_polylines_info(polylines_debug)
+            logger.debug(
+                f"polylines_debug: {polyline_nbr} polylines, {point_nbr} points"
+            )
+
+            raw_ilda_debug, _, _, _ = polylines_to_ilda(polylines_debug)
+            logger.debug(f"type of raw_ilda_debug: {type(raw_ilda_debug)}")
+            with open(
+                f"{ilda_workspace}/{filename}_debug_{cfg_name}.ild", "wb"
+            ) as ilda_file:
+                ilda_file.write(b"".join(raw_ilda_debug))
+                logger.info(
+                    f"Saved ILDA: {ilda_workspace}/{filename}_debug_{cfg_name}.ild"
+                )
