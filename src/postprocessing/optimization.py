@@ -1,0 +1,48 @@
+"""
+Laser path optimization pipeline.
+
+Algorithms are applied sequentially. Later phases will add:
+  Phase 1: weld_vertices, eulerian_path
+  Phase 2: resample_path, apply_corner_dwell
+  Phase 3: add_blanking_anchors, shift_color_signal
+"""
+
+from __future__ import annotations
+
+from src.logger.logging_config import get_logger
+from src.postprocessing.laser_path import LaserPath, from_polylines
+
+logger = get_logger(__name__)
+
+
+def optimize(
+    polylines: list[list[tuple[float, float]]],
+    *,
+    r: int = 0,
+    g: int = 0,
+    b: int = 0,
+) -> LaserPath:
+    """Run the full optimization pipeline on a polylines structure.
+
+    Phase 0 (this stub) only converts the input to a LaserPath and returns it.
+    Subsequent phases will extend this function.
+
+    Args:
+        polylines: Nested list of (x, y) tuples representing polylines.
+        r: Default red channel for all points (0–255).
+        g: Default green channel for all points (0–255).
+        b: Default blue channel for all points (0–255).
+
+    Returns:
+        An optimized LaserPath.
+    """
+    logger.debug("optimize: start, %d polylines", len(polylines))
+
+    path = from_polylines(polylines, r=r, g=g, b=b)
+
+    # Phase 1: weld_vertices, eulerian_path
+    # Phase 2: resample_path, apply_corner_dwell
+    # Phase 3: add_blanking_anchors, shift_color_signal
+
+    logger.debug("optimize: done, %d points", len(path))
+    return path
