@@ -36,7 +36,10 @@ def _get_scale(
     Returns:
         float: Scale factor.
     """
-    x_points, y_points = zip(*(point for polyline in polylines for point in polyline))
+    all_points = [point for polyline in polylines for point in polyline]
+    if not all_points:
+        raise ValueError("Cannot compute scale: polylines contain no points.")
+    x_points, y_points = zip(*all_points)
 
     min_x, max_x = min(x_points), max(x_points)
     min_y, max_y = min(y_points), max(y_points)
@@ -120,13 +123,13 @@ def main() -> None:
         point_nbr, polyline_nbr = get_polylines_info(rescaled_polylines)
         print(f"Rescaled polylines: {polyline_nbr} polylines, {point_nbr} points")
 
-        raw_svg_rescaled = polyline_to_svg(polylines, width=WIDTH, height=HEIGHT)
+        raw_svg_rescaled = polyline_to_svg(rescaled_polylines, width=WIDTH, height=HEIGHT)
 
         # Save SVG to file
         os.makedirs("./tmp", exist_ok=True)
         filename = os.path.splitext(os.path.basename(args.input))[0]
-        with open(f"./tmp/{filename}.svg", "w") as svg_file:
-            svg_file.writelines("\n".join(raw_svg_rescaled))
+        with open(f"./tmp/{filename}.svg", "w", encoding="utf-8") as svg_file:
+            svg_file.write("\n".join(raw_svg_rescaled))
             logger.info(f"Saved SVG: tmp/{filename}.svg")
 
         # Save as ilda file
