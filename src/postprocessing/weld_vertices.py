@@ -68,7 +68,9 @@ def weld_vertices(
             if matched != (x, y):
                 snap_count += 1
 
-    logger.debug("weld_vertices: %d endpoints snapped (threshold=%.3g)", snap_count, threshold)
+    logger.debug(
+        "weld_vertices: %d endpoints snapped (threshold=%.3g)", snap_count, threshold
+    )
 
     # --- 3. Rebuild polylines with snapped endpoints ---------------------
     result: list[list[tuple[float, float]]] = []

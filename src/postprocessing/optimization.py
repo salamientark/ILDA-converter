@@ -2,7 +2,6 @@
 Laser path optimization pipeline.
 
 Algorithms are applied sequentially. Later phases will add:
-  Phase 1: weld_vertices, eulerian_path
   Phase 2: resample_path, apply_corner_dwell
   Phase 3: add_blanking_anchors, shift_color_signal
 """
@@ -10,7 +9,8 @@ Algorithms are applied sequentially. Later phases will add:
 from __future__ import annotations
 
 from src.logger.logging_config import get_logger
-from src.postprocessing.laser_path import LaserPath, from_polylines
+from src.postprocessing.find_eulerian_path import find_eulerian_path
+from src.postprocessing.laser_path import LaserPath
 from src.postprocessing.weld_vertices import weld_vertices
 
 logger = get_logger(__name__)
@@ -25,8 +25,9 @@ def optimize(
 ) -> LaserPath:
     """Run the full optimization pipeline on a polylines structure.
 
-    Phase 1 runs weld_vertices to snap near-coincident endpoints.
-    Subsequent phases will extend this function.
+    Phase 1 welds near-coincident endpoints then builds an Eulerian path so
+    all polylines are covered in one continuous laser sweep with minimal
+    blanking travel.
 
     Args:
         polylines: Nested list of (x, y) tuples representing polylines.
@@ -39,10 +40,13 @@ def optimize(
     """
     logger.debug("optimize: start, %d polylines", len(polylines))
 
-    # Phase 1: weld_vertices, eulerian_path
+    # Phase 1.1: snap near-coincident endpoints
     polylines = weld_vertices(polylines)
 
-    path = from_polylines(polylines, r=r, g=g, b=b)
+    path = LaserPath.from_polylines(polylines)
+
+    # Phase 1.2: Eulerian path — single continuous sweep with blanking jumps
+    path = find_eulerian_path(polylines, r=r, g=g, b=b)
 
     # Phase 2: resample_path, apply_corner_dwell
     # Phase 3: add_blanking_anchors, shift_color_signal
