@@ -180,6 +180,79 @@ def ilda_footer_3d() -> bytes:
     return ilda_header_3d(num_points=0, frame_name="", company_name="")
 
 
+def laser_path_to_ilda(
+    path: list,
+    z_value: int = 0,
+    invert_y: bool = True,
+) -> tuple[list[bytes], float, float, float]:
+    """Convert a LaserPath (flat list of LaserPoint) to ILDA Format 0 bytes.
+
+    Each point's ``status`` field is encoded as the ILDA blanking bit (0x40).
+    The last point in the path has bit 7 set (0x80) to mark end-of-frame.
+
+    Parameters:
+        path (list[LaserPoint]): Flat list of laser points.
+        z_value (int): Z coordinate value for all points (default 0).
+        invert_y (bool): Whether to invert the Y axis when mapping points to ILDA.
+
+    Returns:
+        tuple[list[bytes], float, float, float]: List of ILDA byte chunks
+            (header, body, footer) | Scale factor used | Center X offset | Center Y offset
+
+    Raises:
+        ValueError: If ``path`` is empty or ``z_value`` is out of range.
+    """
+    if z_value < -32768 or z_value > 32767:
+        raise ValueError(f"z_value must be in range -32768 to 32767, got {z_value}")
+    if not path:
+        raise ValueError("path is empty - cannot convert empty LaserPath to ILDA")
+
+    x_coords = [float(pt.x) for pt in path]
+    y_coords = [float(pt.y) for pt in path]
+    min_x, max_x = min(x_coords), max(x_coords)
+    min_y, max_y = min(y_coords), max(y_coords)
+
+    x_range = max_x - min_x
+    y_range = max_y - min_y
+
+    if x_range > 0 and y_range > 0:
+        scale = min(65535 / x_range, 65535 / y_range) * 0.9
+    elif x_range > 0:
+        scale = 65535 / x_range * 0.9
+    elif y_range > 0:
+        scale = 65535 / y_range * 0.9
+    else:
+        scale = 1.0
+
+    center_x = (min_x + max_x) / 2
+    center_y = (min_y + max_y) / 2
+
+    body = b""
+    num_points = len(path)
+
+    for i, pt in enumerate(path):
+        ilda_x = int((float(pt.x) - center_x) * scale)
+        ilda_y = int((float(pt.y) - center_y) * scale)
+        if invert_y:
+            ilda_y = -ilda_y
+
+        ilda_x = max(-32768, min(32767, ilda_x))
+        ilda_y = max(-32768, min(32767, ilda_y))
+
+        status = 0x40 if pt.status == 1 else 0x00
+        if i == 0:
+            status |= 0x40   # always blank-reposition to the path start
+        if i == num_points - 1:
+            status |= 0x80
+
+        body += struct.pack(">hhhBB", ilda_x, ilda_y, z_value, status, 0)
+
+    header = ilda_header_3d(num_points=num_points)
+    footer = ilda_footer_3d()
+
+    return [header, body, footer], scale, center_x, center_y
+
+
 def polylines_to_ilda(
     polylines: list[list[tuple[float, float]]],
     z_value: int = 0,

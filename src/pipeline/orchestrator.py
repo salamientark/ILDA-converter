@@ -16,7 +16,7 @@ from typing import Any
 import cv2
 import potrace
 
-from src.ilda.ilda_3d import polylines_to_ilda
+from src.ilda.ilda_3d import laser_path_to_ilda, polylines_to_ilda
 from src.logger.logging_config import get_logger
 from src.logger.timing import Timer
 from src.preprocessing.preprocessing import (
@@ -25,6 +25,8 @@ from src.preprocessing.preprocessing import (
     mean_thresh_img,
     otsu_thresholding,
 )
+from src.postprocessing.find_eulerian_path import find_eulerian_path
+from src.postprocessing.weld_vertices import weld_vertices
 from src.vectorization import POTRACE_CONFIGS, vectorize_opencv
 
 logger = get_logger(__name__)
@@ -183,11 +185,13 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
     pre_workspace = f"data/{base_filename}/preprocessing"
     svg_workspace = f"data/{base_filename}/svg"
     ilda_workspace = f"data/{base_filename}/ilda"
+    optimizer_workspace = f"data/{base_filename}/optimizer"
 
     os.makedirs(f"data/{base_filename}", exist_ok=True)
     os.makedirs(pre_workspace, exist_ok=True)
     os.makedirs(svg_workspace, exist_ok=True)
     os.makedirs(ilda_workspace, exist_ok=True)
+    os.makedirs(optimizer_workspace, exist_ok=True)
 
     preproc_instructions, vectorization_instructions = create_instructions(
         preprocessing,
@@ -231,3 +235,29 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
             with open(f"{ilda_workspace}/{filename}_{cfg_name}.ild", "wb") as ilda_file:
                 ilda_file.write(b"".join(raw_ilda))
                 logger.info(f"Saved ILDA: {ilda_workspace}/{filename}_{cfg_name}.ild")
+
+            # Stage 1: Raw point count
+            raw_count = sum(len(pl) for pl in polyline)
+            logger.info("Stage raw: %d points across %d polylines", raw_count, len(polyline))
+
+            # Stage 2: Weld
+            welded = weld_vertices(polyline)
+            weld_count = sum(len(pl) for pl in welded)
+            logger.info("Stage weld: %d points across %d polylines", weld_count, len(welded))
+            raw_ilda_welded, _, _, _ = polylines_to_ilda(welded)
+            with open(f"{optimizer_workspace}/{filename}_{cfg_name}_weld.ild", "wb") as f:
+                f.write(b"".join(raw_ilda_welded))
+            logger.info("Saved weld ILDA: %s/%s_%s_weld.ild", optimizer_workspace, filename, cfg_name)
+
+            # Stage 3: Optimized (Eulerian path)
+            opt_path = find_eulerian_path(welded, r=255, g=255, b=255)
+            visible = sum(1 for pt in opt_path if not pt.is_blanking)
+            blanking = sum(1 for pt in opt_path if pt.is_blanking)
+            logger.info(
+                "Stage optimized: %d total points (%d visible, %d blanking)",
+                len(opt_path), visible, blanking,
+            )
+            raw_ilda_opt, _, _, _ = laser_path_to_ilda(opt_path)
+            with open(f"{optimizer_workspace}/{filename}_{cfg_name}_optimized.ild", "wb") as f:
+                f.write(b"".join(raw_ilda_opt))
+            logger.info("Saved optimized ILDA: %s/%s_%s_optimized.ild", optimizer_workspace, filename, cfg_name)
