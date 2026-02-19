@@ -241,7 +241,7 @@ def laser_path_to_ilda(
 
         status = 0x40 if pt.status == 1 else 0x00
         if i == 0:
-            status |= 0x40   # always blank-reposition to the path start
+            status |= 0x40  # always blank-reposition to the path start
         if i == num_points - 1:
             status |= 0x80
 

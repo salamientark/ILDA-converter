@@ -238,16 +238,27 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
 
             # Stage 1: Raw point count
             raw_count = sum(len(pl) for pl in polyline)
-            logger.info("Stage raw: %d points across %d polylines", raw_count, len(polyline))
+            logger.info(
+                "Stage raw: %d points across %d polylines", raw_count, len(polyline)
+            )
 
             # Stage 2: Weld
             welded = weld_vertices(polyline)
             weld_count = sum(len(pl) for pl in welded)
-            logger.info("Stage weld: %d points across %d polylines", weld_count, len(welded))
+            logger.info(
+                "Stage weld: %d points across %d polylines", weld_count, len(welded)
+            )
             raw_ilda_welded, _, _, _ = polylines_to_ilda(welded)
-            with open(f"{optimizer_workspace}/{filename}_{cfg_name}_weld.ild", "wb") as f:
+            with open(
+                f"{optimizer_workspace}/{filename}_{cfg_name}_weld.ild", "wb"
+            ) as f:
                 f.write(b"".join(raw_ilda_welded))
-            logger.info("Saved weld ILDA: %s/%s_%s_weld.ild", optimizer_workspace, filename, cfg_name)
+            logger.info(
+                "Saved weld ILDA: %s/%s_%s_weld.ild",
+                optimizer_workspace,
+                filename,
+                cfg_name,
+            )
 
             # Stage 3: Optimized (Eulerian path)
             opt_path = find_eulerian_path(welded, r=255, g=255, b=255)
@@ -255,9 +266,18 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
             blanking = sum(1 for pt in opt_path if pt.is_blanking)
             logger.info(
                 "Stage optimized: %d total points (%d visible, %d blanking)",
-                len(opt_path), visible, blanking,
+                len(opt_path),
+                visible,
+                blanking,
             )
             raw_ilda_opt, _, _, _ = laser_path_to_ilda(opt_path)
-            with open(f"{optimizer_workspace}/{filename}_{cfg_name}_optimized.ild", "wb") as f:
+            with open(
+                f"{optimizer_workspace}/{filename}_{cfg_name}_optimized.ild", "wb"
+            ) as f:
                 f.write(b"".join(raw_ilda_opt))
-            logger.info("Saved optimized ILDA: %s/%s_%s_optimized.ild", optimizer_workspace, filename, cfg_name)
+            logger.info(
+                "Saved optimized ILDA: %s/%s_%s_optimized.ild",
+                optimizer_workspace,
+                filename,
+                cfg_name,
+            )
