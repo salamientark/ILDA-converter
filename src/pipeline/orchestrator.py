@@ -27,7 +27,7 @@ from src.preprocessing.preprocessing import (
 )
 from src.postprocessing.find_eulerian_path import find_eulerian_path
 
-# from src.postprocessing.resample_path import resample_path
+from src.postprocessing.resample_path import resample_path
 from src.postprocessing.weld_vertices import weld_vertices
 from src.vectorization import POTRACE_CONFIGS, vectorize_opencv
 
@@ -288,23 +288,23 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
             )
 
             # Stage 4: Resampled
-            # resampled = resample_path(opt_path)
-            # visible_r = sum(1 for pt in resampled if not pt.is_blanking)
-            # blanking_r = sum(1 for pt in resampled if pt.is_blanking)
-            # logger.info(
-            #     "Stage resampled: %d total points (%d visible, %d blanking)",
-            #     len(resampled),
-            #     visible_r,
-            #     blanking_r,
-            # )
-            # raw_ilda_resampled, _, _, _ = laser_path_to_ilda(resampled)
-            # with open(
-            #     f"{optimizer_workspace}/{filename}_{cfg_name}_resampled.ild", "wb"
-            # ) as f:
-            #     f.write(b"".join(raw_ilda_resampled))
-            # logger.info(
-            #     "Saved resampled ILDA: %s/%s_%s_resampled.ild",
-            #     optimizer_workspace,
-            #     filename,
-            #     cfg_name,
-            # )
+            resampled = resample_path(opt_path)
+            visible_r = sum(1 for pt in resampled if not pt.is_blanking)
+            blanking_r = sum(1 for pt in resampled if pt.is_blanking)
+            logger.info(
+                "Stage resampled: %d total points (%d visible, %d blanking)",
+                len(resampled),
+                visible_r,
+                blanking_r,
+            )
+            raw_ilda_resampled, _, _, _ = laser_path_to_ilda(resampled)
+            with open(
+                f"{optimizer_workspace}/{filename}_{cfg_name}_resampled.ild", "wb"
+            ) as f:
+                f.write(b"".join(raw_ilda_resampled))
+            logger.info(
+                "Saved resampled ILDA: %s/%s_%s_resampled.ild",
+                optimizer_workspace,
+                filename,
+                cfg_name,
+            )

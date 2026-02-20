@@ -7,6 +7,7 @@ from .weld_vertices import weld_vertices
 from .find_eulerian_path import find_eulerian_path
 from .resample_path import resample_path
 from .corner_dwell import apply_corner_dwell
+from .find_eulerian_path import find_eulerian_path
 
 __all__ = [
     "LaserPoint",
