@@ -300,8 +300,9 @@ def laser_path_to_ilda(
     )
 
     header = ilda_header_3d(num_points=num_points)
+    footer = ilda_footer_3d()
 
-    return [header, body], scale, center_x, center_y
+    return [header, body, footer], scale, center_x, center_y
 
 
 def polylines_to_ilda(
@@ -332,5 +333,8 @@ def polylines_to_ilda(
     # Generate header with correct point count
     header = ilda_header_3d(num_points=num_points)
 
+    # Generate footer (EOF marker)
+    footer = ilda_footer_3d()
+
     # Return as list of byte chunks
-    return [header, body], scale, center_x, center_y
+    return [header, body, footer], scale, center_x, center_y
