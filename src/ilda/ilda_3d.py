@@ -88,8 +88,7 @@ def ilda_body_3d(
     Raises:
         ValueError: If polylines are empty, any polyline is empty, or z_value is out of range.
     """
-    if z_value < -32768 or z_value > 32767:
-        raise ValueError(f"z_value must be in range -32768 to 32767, got {z_value}")
+    validate_z_value(z_value)
 
     if not polylines:
         raise ValueError("Polylines are empty - cannot convert empty polylines to ILDA")
@@ -109,23 +108,7 @@ def ilda_body_3d(
 
     x_coords = [p[0] for p in all_points]
     y_coords = [p[1] for p in all_points]
-    min_x, max_x = min(x_coords), max(x_coords)
-    min_y, max_y = min(y_coords), max(y_coords)
-
-    x_range = max_x - min_x
-    y_range = max_y - min_y
-
-    if x_range > 0 and y_range > 0:
-        scale = min(65535 / x_range, 65535 / y_range) * 0.9
-    elif x_range > 0:
-        scale = 65535 / x_range * 0.9
-    elif y_range > 0:
-        scale = 65535 / y_range * 0.9
-    else:
-        scale = 1.0
-
-    center_x = (min_x + max_x) / 2
-    center_y = (min_y + max_y) / 2
+    scale, center_x, center_y = _compute_scale_and_center_from_coords(x_coords, y_coords)
 
     body = b""
     total_points = len(all_points)
@@ -182,6 +165,39 @@ def ilda_footer_3d() -> bytes:
     return ilda_header_3d(num_points=0, frame_name="", company_name="")
 
 
+def _compute_scale_and_center_from_coords(
+    x_coords: list[float], y_coords: list[float]
+) -> tuple[float, float, float]:
+    """Compute scale, center_x, center_y from raw coordinate lists.
+
+    Parameters:
+        x_coords (list[float]): X coordinates.
+        y_coords (list[float]): Y coordinates.
+
+    Returns:
+        tuple[float, float, float]: scale, center_x, center_y
+    """
+    min_x, max_x = min(x_coords), max(x_coords)
+    min_y, max_y = min(y_coords), max(y_coords)
+
+    x_range = max_x - min_x
+    y_range = max_y - min_y
+
+    if x_range > 0 and y_range > 0:
+        scale = min(65535 / x_range, 65535 / y_range) * 0.9
+    elif x_range > 0:
+        scale = 65535 / x_range * 0.9
+    elif y_range > 0:
+        scale = 65535 / y_range * 0.9
+    else:
+        scale = 1.0
+
+    center_x = (min_x + max_x) / 2
+    center_y = (min_y + max_y) / 2
+
+    return scale, center_x, center_y
+
+
 def validate_z_value(z_value: int) -> None:
     """Raise ValueError if z_value is outside the ILDA signed-16-bit range."""
     if z_value < -32768 or z_value > 32767:
@@ -205,25 +221,7 @@ def compute_scale_and_center(path: list[LaserPoint]) -> tuple[float, float, floa
 
     x_coords = [float(pt.x) for pt in path]
     y_coords = [float(pt.y) for pt in path]
-    min_x, max_x = min(x_coords), max(x_coords)
-    min_y, max_y = min(y_coords), max(y_coords)
-
-    x_range = max_x - min_x
-    y_range = max_y - min_y
-
-    if x_range > 0 and y_range > 0:
-        scale = min(65535 / x_range, 65535 / y_range) * 0.9
-    elif x_range > 0:
-        scale = 65535 / x_range * 0.9
-    elif y_range > 0:
-        scale = 65535 / y_range * 0.9
-    else:
-        scale = 1.0
-
-    center_x = (min_x + max_x) / 2
-    center_y = (min_y + max_y) / 2
-
-    return scale, center_x, center_y
+    return _compute_scale_and_center_from_coords(x_coords, y_coords)
 
 
 def encode_points_to_body(

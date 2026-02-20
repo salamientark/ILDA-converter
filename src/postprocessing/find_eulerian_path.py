@@ -148,9 +148,9 @@ def _add_blanking_edges(
         candidates: Nodes with odd degree that require pairing.
     """
     remaining = list(candidates)
-
+    
     while len(remaining) >= 2:
-        u = remaining.pop(0)
+        u = remaining.pop(0)  # O(n) shift — acceptable since k is typically small
         best = min(
             range(len(remaining)),
             key=lambda i: math.hypot(
@@ -189,10 +189,15 @@ def _hierholzer(
     comp_adj: dict[_Node, list[int]],
     start: _Node,
 ) -> list[tuple[_Node, int | None]]:
-    """Find an Eulerian circuit within a single connected Eulerian component.
+    """Find an Eulerian circuit or path within a single connected component.
 
-    Each node in *comp_adj* must have even degree before this is called
-    (guaranteed by :func:`_add_blanking_edges`).
+    *comp_adj* must represent an Eulerian graph (all nodes even-degree) or a
+    semi-Eulerian graph (exactly two odd-degree nodes), as guaranteed by
+    :func:`_add_blanking_edges` together with the caller's node selection in
+    :func:`_process_component`.  When the graph is Eulerian the traversal
+    returns to *start*, forming a circuit; when it is semi-Eulerian *start*
+    must be one of the two odd-degree nodes and the traversal ends at the
+    other, forming an open path.
 
     Args:
         edges: Global edge list; the ``used`` flag on each edge is set as it
@@ -202,7 +207,8 @@ def _hierholzer(
 
     Returns:
         An ordered list of ``(node, arriving_edge_idx)`` tuples.  The first
-        entry represents the start node and has ``arriving_edge_idx = None``.
+        entry represents the start node and has ``arriving_edge_idx = None``
+        in both the circuit and path cases.
     """
     # Per-node stacks of unvisited edge indices (copied so we don't mutate comp_adj)
     node_stacks: dict[_Node, list[int]] = {n: list(es) for n, es in comp_adj.items()}

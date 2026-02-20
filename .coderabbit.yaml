@@ -41,7 +41,7 @@ reviews:
       - "Draft"
       - "draft"
     # Review all PRs regardless of target branch
-    base_branches: []
+    base_branches: ['.*']
 
   # Path-specific instructions
   path_instructions:

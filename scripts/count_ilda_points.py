@@ -5,7 +5,15 @@ from pathlib import Path
 
 
 def count_ilda_3d_points(data: bytes) -> list[int]:
-    """Return the number of points in each frame of an ILDA file."""
+    """Return the number of 3D points per frame in an ILDA byte stream.
+
+    Args:
+        data: Raw bytes of an ILDA file (Format 0 / 3D only).
+
+    Returns:
+        A list of per-frame point counts, in frame order.
+        Frames with zero records (EOF marker) are not included.
+    """
     counts = []
     offset = 0
     while True:
@@ -24,6 +32,7 @@ def count_ilda_3d_points(data: bytes) -> list[int]:
 
 
 def main() -> None:
+    """CLI entry point: print per-frame point counts for an ILDA file."""
     if len(sys.argv) != 2:
         print(f"Usage: {sys.argv[0]} <file.ild>", file=sys.stderr)
         sys.exit(1)
