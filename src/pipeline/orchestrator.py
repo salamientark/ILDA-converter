@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import cv2
@@ -27,7 +28,8 @@ from src.preprocessing.preprocessing import (
 )
 from src.postprocessing.find_eulerian_path import find_eulerian_path
 
-# from src.postprocessing.resample_path import resample_path
+from src.postprocessing.corner_dwell import apply_corner_dwell
+from src.postprocessing.resample_path import resample_path
 from src.postprocessing.weld_vertices import weld_vertices
 from src.vectorization import POTRACE_CONFIGS, vectorize_opencv
 
@@ -288,23 +290,35 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
             )
 
             # Stage 4: Resampled
-            # resampled = resample_path(opt_path)
-            # visible_r = sum(1 for pt in resampled if not pt.is_blanking)
-            # blanking_r = sum(1 for pt in resampled if pt.is_blanking)
-            # logger.info(
-            #     "Stage resampled: %d total points (%d visible, %d blanking)",
-            #     len(resampled),
-            #     visible_r,
-            #     blanking_r,
-            # )
-            # raw_ilda_resampled, _, _, _ = laser_path_to_ilda(resampled)
-            # with open(
-            #     f"{optimizer_workspace}/{filename}_{cfg_name}_resampled.ild", "wb"
-            # ) as f:
-            #     f.write(b"".join(raw_ilda_resampled))
-            # logger.info(
-            #     "Saved resampled ILDA: %s/%s_%s_resampled.ild",
-            #     optimizer_workspace,
-            #     filename,
-            #     cfg_name,
-            # )
+            resampled = resample_path(opt_path)
+            visible_r = sum(1 for pt in resampled if not pt.is_blanking)
+            blanking_r = sum(1 for pt in resampled if pt.is_blanking)
+            logger.info(
+                "Stage resampled: %d total points (%d visible, %d blanking)",
+                len(resampled),
+                visible_r,
+                blanking_r,
+            )
+            raw_ilda_resampled, _, _, _ = laser_path_to_ilda(resampled)
+            output_path = (
+                Path(optimizer_workspace) / f"{filename}_{cfg_name}_resampled.ild"
+            )
+            output_path.write_bytes(b"".join(raw_ilda_resampled))
+            logger.info("Saved resampled ILDA: %s", output_path)
+
+            # Stage 5: Corner dwell
+            dwell_path = apply_corner_dwell(resampled, max_dwell=8)
+            visible_d = sum(1 for pt in dwell_path if not pt.is_blanking)
+            blanking_d = sum(1 for pt in dwell_path if pt.is_blanking)
+            logger.info(
+                "Stage corner_dwell: %d total points (%d visible, %d blanking)",
+                len(dwell_path),
+                visible_d,
+                blanking_d,
+            )
+            raw_ilda_dwell, _, _, _ = laser_path_to_ilda(dwell_path)
+            dwell_out = (
+                Path(optimizer_workspace) / f"{filename}_{cfg_name}_corner_dwell.ild"
+            )
+            dwell_out.write_bytes(b"".join(raw_ilda_dwell))
+            logger.info("Saved corner_dwell ILDA: %s", dwell_out)

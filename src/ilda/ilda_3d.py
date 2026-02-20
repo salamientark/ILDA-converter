@@ -151,6 +151,7 @@ def ilda_body_3d(
         point_idx += 4
         if point_idx == total_points:
             body += struct.pack(">hhhBB", last_x, last_y, z_value, 0xC0, 0)
+            total_points += 1
 
     return body, total_points, scale, center_x, center_y
 
