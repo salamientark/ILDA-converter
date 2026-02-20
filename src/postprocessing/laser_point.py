@@ -6,10 +6,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.logger.logging_config import get_logger
-
-logger = get_logger(__name__)
-
 
 @dataclass(slots=True)
 class LaserPoint:
@@ -30,6 +26,14 @@ class LaserPoint:
     g: int = 0
     b: int = 0
     status: int = 0
+
+    def __post_init__(self) -> None:
+        """Validate field ranges."""
+        for name, val in [("r", self.r), ("g", self.g), ("b", self.b)]:
+            if not 0 <= val <= 255:
+                raise ValueError(f"{name} must be 0–255, got {val}")
+        if self.status not in (0, 1):
+            raise ValueError(f"status must be 0 or 1, got {self.status}")
 
     @classmethod
     def from_xy(

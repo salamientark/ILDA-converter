@@ -4,6 +4,8 @@ Reference from https://www.ilda.com/resources/StandardsDocs/ILDA_IDTF14_rev011.p
 
 import struct
 
+from src.postprocessing.laser_point import LaserPoint
+
 
 def ilda_header_3d(
     num_points: int,
@@ -186,7 +188,7 @@ def validate_z_value(z_value: int) -> None:
         raise ValueError(f"z_value must be in range -32768 to 32767, got {z_value}")
 
 
-def compute_scale_and_center(path: list) -> tuple[float, float, float]:
+def compute_scale_and_center(path: list[LaserPoint]) -> tuple[float, float, float]:
     """Validate path and compute scale, center_x, center_y from a LaserPath.
 
     Parameters:
@@ -245,7 +247,7 @@ def encode_points_to_body(
     Returns:
         tuple[bytes, int]: Binary point records and the number of points encoded.
     """
-    body = b""
+    parts: list[bytes] = []
     num_points = len(path)
 
     for i, pt in enumerate(path):
@@ -263,9 +265,10 @@ def encode_points_to_body(
         if i == num_points - 1:
             status |= 0x80
 
-        body += struct.pack(">hhhBB", ilda_x, ilda_y, z_value, status, 0)
+        # body += struct.pack(">hhhBB", ilda_x, ilda_y, z_value, status, 0)
+        parts.append(struct.pack(">hhhBB", ilda_x, ilda_y, z_value, status, 0))
 
-    return body, num_points
+    return b"".join(parts), num_points
 
 
 def laser_path_to_ilda(

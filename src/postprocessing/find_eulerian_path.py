@@ -368,7 +368,7 @@ def _stitch_sub_paths(sub_paths: list[LaserPath]) -> LaserPath:
     if not sub_paths:
         return []
 
-    path: LaserPath = sub_paths[0]
+    path: LaserPath = list(sub_paths[0])
     for sp in sub_paths[1:]:
         if not sp:
             continue

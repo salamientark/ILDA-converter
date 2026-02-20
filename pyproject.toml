@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Python toolkit for converting bitmap and vector images to ILDA format for laser show control systems"
 readme = "README.md"
 license = { text = "MIT" }
-authors = [{ name = "Jay Moker", email = "AC@B" }]
+authors = [{ name = "Jay Moker" }]
 requires-python = ">=3.14"
 dependencies = [
     "matplotlib>=3.10.8",
