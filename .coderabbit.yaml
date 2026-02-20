@@ -40,10 +40,8 @@ reviews:
       - "wip"
       - "Draft"
       - "draft"
-    # Review base branch changes
-    base_branches:
-      - "main"
-      - "develop"
+    # Review all PRs regardless of target branch
+    base_branches: ['.*']
 
   # Path-specific instructions
   path_instructions:

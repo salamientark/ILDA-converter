@@ -4,6 +4,8 @@ Reference from https://www.ilda.com/resources/StandardsDocs/ILDA_IDTF14_rev011.p
 
 import struct
 
+from src.postprocessing.laser_point import LaserPoint
+
 
 def ilda_header_3d(
     num_points: int,
@@ -86,8 +88,7 @@ def ilda_body_3d(
     Raises:
         ValueError: If polylines are empty, any polyline is empty, or z_value is out of range.
     """
-    if z_value < -32768 or z_value > 32767:
-        raise ValueError(f"z_value must be in range -32768 to 32767, got {z_value}")
+    validate_z_value(z_value)
 
     if not polylines:
         raise ValueError("Polylines are empty - cannot convert empty polylines to ILDA")
@@ -107,23 +108,9 @@ def ilda_body_3d(
 
     x_coords = [p[0] for p in all_points]
     y_coords = [p[1] for p in all_points]
-    min_x, max_x = min(x_coords), max(x_coords)
-    min_y, max_y = min(y_coords), max(y_coords)
-
-    x_range = max_x - min_x
-    y_range = max_y - min_y
-
-    if x_range > 0 and y_range > 0:
-        scale = min(65535 / x_range, 65535 / y_range) * 0.9
-    elif x_range > 0:
-        scale = 65535 / x_range * 0.9
-    elif y_range > 0:
-        scale = 65535 / y_range * 0.9
-    else:
-        scale = 1.0
-
-    center_x = (min_x + max_x) / 2
-    center_y = (min_y + max_y) / 2
+    scale, center_x, center_y = _compute_scale_and_center_from_coords(
+        x_coords, y_coords
+    )
 
     body = b""
     total_points = len(all_points)
@@ -178,6 +165,143 @@ def ilda_footer_3d() -> bytes:
         bytes: 32-byte ILDA Format 0 footer.
     """
     return ilda_header_3d(num_points=0, frame_name="", company_name="")
+
+
+def _compute_scale_and_center_from_coords(
+    x_coords: list[float], y_coords: list[float]
+) -> tuple[float, float, float]:
+    """Compute scale, center_x, center_y from raw coordinate lists.
+
+    Parameters:
+        x_coords (list[float]): X coordinates.
+        y_coords (list[float]): Y coordinates.
+
+    Returns:
+        tuple[float, float, float]: scale, center_x, center_y
+    """
+    min_x, max_x = min(x_coords), max(x_coords)
+    min_y, max_y = min(y_coords), max(y_coords)
+
+    x_range = max_x - min_x
+    y_range = max_y - min_y
+
+    if x_range > 0 and y_range > 0:
+        scale = min(65535 / x_range, 65535 / y_range) * 0.9
+    elif x_range > 0:
+        scale = 65535 / x_range * 0.9
+    elif y_range > 0:
+        scale = 65535 / y_range * 0.9
+    else:
+        scale = 1.0
+
+    center_x = (min_x + max_x) / 2
+    center_y = (min_y + max_y) / 2
+
+    return scale, center_x, center_y
+
+
+def validate_z_value(z_value: int) -> None:
+    """Raise ValueError if z_value is outside the ILDA signed-16-bit range."""
+    if z_value < -32768 or z_value > 32767:
+        raise ValueError(f"z_value must be in range -32768 to 32767, got {z_value}")
+
+
+def compute_scale_and_center(path: list[LaserPoint]) -> tuple[float, float, float]:
+    """Validate path and compute scale, center_x, center_y from a LaserPath.
+
+    Parameters:
+        path (list[LaserPoint]): Non-empty flat list of laser points.
+
+    Returns:
+        tuple[float, float, float]: scale, center_x, center_y
+
+    Raises:
+        ValueError: If ``path`` is empty.
+    """
+    if not path:
+        raise ValueError("path is empty - cannot convert empty LaserPath to ILDA")
+
+    x_coords = [float(pt.x) for pt in path]
+    y_coords = [float(pt.y) for pt in path]
+    return _compute_scale_and_center_from_coords(x_coords, y_coords)
+
+
+def encode_points_to_body(
+    path: list,
+    scale: float,
+    center_x: float,
+    center_y: float,
+    z_value: int,
+    invert_y: bool,
+) -> tuple[bytes, int]:
+    """Encode a LaserPath to ILDA Format 0 binary point records.
+
+    Parameters:
+        path (list[LaserPoint]): Flat list of laser points.
+        scale (float): Scale factor computed by :func:`compute_scale_and_center`.
+        center_x (float): X center offset.
+        center_y (float): Y center offset.
+        z_value (int): Z coordinate value for all points.
+        invert_y (bool): Whether to invert the Y axis.
+
+    Returns:
+        tuple[bytes, int]: Binary point records and the number of points encoded.
+    """
+    parts: list[bytes] = []
+    num_points = len(path)
+
+    for i, pt in enumerate(path):
+        ilda_x = int((float(pt.x) - center_x) * scale)
+        ilda_y = int((float(pt.y) - center_y) * scale)
+        if invert_y:
+            ilda_y = -ilda_y
+
+        ilda_x = max(-32768, min(32767, ilda_x))
+        ilda_y = max(-32768, min(32767, ilda_y))
+
+        status = 0x40 if pt.status == 1 else 0x00
+        if i == 0:
+            status |= 0x40  # always blank-reposition to the path start
+        if i == num_points - 1:
+            status |= 0x80
+
+        parts.append(struct.pack(">hhhBB", ilda_x, ilda_y, z_value, status, 0))
+
+    return b"".join(parts), num_points
+
+
+def laser_path_to_ilda(
+    path: list,
+    z_value: int = 0,
+    invert_y: bool = True,
+) -> tuple[list[bytes], float, float, float]:
+    """Convert a LaserPath (flat list of LaserPoint) to ILDA Format 0 bytes.
+
+    Each point's ``status`` field is encoded as the ILDA blanking bit (0x40).
+    The last point in the path has bit 7 set (0x80) to mark end-of-frame.
+
+    Parameters:
+        path (list[LaserPoint]): Flat list of laser points.
+        z_value (int): Z coordinate value for all points (default 0).
+        invert_y (bool): Whether to invert the Y axis when mapping points to ILDA.
+
+    Returns:
+        tuple[list[bytes], float, float, float]: List of ILDA byte chunks
+            (header, body, footer) | Scale factor used | Center X offset | Center Y offset
+
+    Raises:
+        ValueError: If ``path`` is empty or ``z_value`` is out of range.
+    """
+    validate_z_value(z_value)
+    scale, center_x, center_y = compute_scale_and_center(path)
+    body, num_points = encode_points_to_body(
+        path, scale, center_x, center_y, z_value, invert_y
+    )
+
+    header = ilda_header_3d(num_points=num_points)
+    footer = ilda_footer_3d()
+
+    return [header, body, footer], scale, center_x, center_y
 
 
 def polylines_to_ilda(
