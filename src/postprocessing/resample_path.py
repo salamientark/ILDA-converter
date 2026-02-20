@@ -32,6 +32,8 @@ def resample_path(path: LaserPath, *, max_step: float = 50.0) -> LaserPath:
     Returns:
         A new LaserPath with all gaps capped at *max_step*.
     """
+    if max_step <= 0:
+        raise ValueError(f"max_step must be positive, got {max_step}")
     if len(path) < 2:
         return list(path)
 

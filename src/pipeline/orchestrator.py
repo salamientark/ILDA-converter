@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import cv2
@@ -299,16 +300,11 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
                 blanking_r,
             )
             raw_ilda_resampled, _, _, _ = laser_path_to_ilda(resampled)
-            with open(
-                f"{optimizer_workspace}/{filename}_{cfg_name}_resampled.ild", "wb"
-            ) as f:
-                f.write(b"".join(raw_ilda_resampled))
-            logger.info(
-                "Saved resampled ILDA: %s/%s_%s_resampled.ild",
-                optimizer_workspace,
-                filename,
-                cfg_name,
+            output_path = (
+                Path(optimizer_workspace) / f"{filename}_{cfg_name}_resampled.ild"
             )
+            output_path.write_bytes(b"".join(raw_ilda_resampled))
+            logger.info("Saved resampled ILDA: %s", output_path)
 
             # Stage 5: Corner dwell
             dwell_path = apply_corner_dwell(resampled, max_dwell=8)

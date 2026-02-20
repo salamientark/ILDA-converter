@@ -18,6 +18,22 @@ from src.postprocessing.laser_point import LaserPoint
 _log = get_logger(__name__)
 
 
+def _vertex_angle_deg(
+    prev: LaserPoint, pt: LaserPoint, nxt: LaserPoint
+) -> float | None:
+    """Return the opening angle in degrees at *pt*, or None for degenerate segments."""
+    ax = prev.x - pt.x
+    ay = prev.y - pt.y
+    bx = nxt.x - pt.x
+    by = nxt.y - pt.y
+    mag_a = math.hypot(ax, ay)
+    mag_b = math.hypot(bx, by)
+    if mag_a == 0.0 or mag_b == 0.0:
+        return None
+    cos_angle = max(-1.0, min(1.0, (ax * bx + ay * by) / (mag_a * mag_b)))
+    return math.degrees(math.acos(cos_angle))
+
+
 def apply_corner_dwell(
     path: LaserPath,
     *,
@@ -62,22 +78,9 @@ def apply_corner_dwell(
         if prev.status != 0 or nxt.status != 0:
             continue
 
-        # Reversed incoming vector and outgoing vector
-        ax = prev.x - pt.x
-        ay = prev.y - pt.y
-        bx = nxt.x - pt.x
-        by = nxt.y - pt.y
-
-        mag_a = math.hypot(ax, ay)
-        mag_b = math.hypot(bx, by)
-
-        # Degenerate segment (zero-length) — skip
-        if mag_a == 0.0 or mag_b == 0.0:
+        angle = _vertex_angle_deg(prev, pt, nxt)
+        if angle is None:
             continue
-
-        dot = ax * bx + ay * by
-        cos_angle = max(-1.0, min(1.0, dot / (mag_a * mag_b)))
-        angle = math.degrees(math.acos(cos_angle))
 
         dwell_count = round(max_dwell * (1 - angle / 180))
 
