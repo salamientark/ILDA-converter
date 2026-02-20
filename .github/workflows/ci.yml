@@ -52,6 +52,7 @@ jobs:
         run: uv sync
 
       - name: Run ruff check
+        run: uv run ruff check
 
   test:
     name: Test Suite
@@ -76,4 +77,3 @@ jobs:
 
       - name: Run pytest
         run: uv run pytest
-       run: uv run ruff check

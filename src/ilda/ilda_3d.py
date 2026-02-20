@@ -263,7 +263,6 @@ def encode_points_to_body(
         if i == num_points - 1:
             status |= 0x80
 
-        # body += struct.pack(">hhhBB", ilda_x, ilda_y, z_value, status, 0)
         parts.append(struct.pack(">hhhBB", ilda_x, ilda_y, z_value, status, 0))
 
     return b"".join(parts), num_points

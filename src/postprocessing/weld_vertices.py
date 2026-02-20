@@ -118,6 +118,8 @@ def weld_vertices(
         A new ``list[list[tuple[float, float]]]`` with snapped endpoints.
         The input is never mutated.
     """
+    if threshold <= 0:
+        raise ValueError("Threshold must be positive")
     endpoints = _collect_endpoints(polylines)
     _canonicals, snapped_coords, snap_count = _snap_endpoints(endpoints, threshold)
     logger.debug(
