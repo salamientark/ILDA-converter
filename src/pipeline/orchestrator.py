@@ -26,6 +26,7 @@ from src.preprocessing.preprocessing import (
     otsu_thresholding,
 )
 from src.postprocessing.find_eulerian_path import find_eulerian_path
+
 # from src.postprocessing.resample_path import resample_path
 from src.postprocessing.weld_vertices import weld_vertices
 from src.vectorization import POTRACE_CONFIGS, vectorize_opencv

@@ -108,7 +108,9 @@ def ilda_body_3d(
 
     x_coords = [p[0] for p in all_points]
     y_coords = [p[1] for p in all_points]
-    scale, center_x, center_y = _compute_scale_and_center_from_coords(x_coords, y_coords)
+    scale, center_x, center_y = _compute_scale_and_center_from_coords(
+        x_coords, y_coords
+    )
 
     body = b""
     total_points = len(all_points)

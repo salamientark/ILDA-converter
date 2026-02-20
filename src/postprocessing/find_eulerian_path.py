@@ -148,7 +148,7 @@ def _add_blanking_edges(
         candidates: Nodes with odd degree that require pairing.
     """
     remaining = list(candidates)
-    
+
     while len(remaining) >= 2:
         u = remaining.pop(0)  # O(n) shift — acceptable since k is typically small
         best = min(
@@ -350,13 +350,13 @@ def _process_component(
         # Already semi-Eulerian: path runs from odd[0] to odd[1].
         start = odd[0]
     elif n_odd == 1:
-            logger.warning(
-                "component %d/%d: 1 odd-degree node (should not happen in a valid "
-                "undirected graph) — path may be incomplete.",
-                comp_idx + 1,
-                n_components,
-            )
-            start = odd[0]
+        logger.warning(
+            "component %d/%d: 1 odd-degree node (should not happen in a valid "
+            "undirected graph) — path may be incomplete.",
+            comp_idx + 1,
+            n_components,
+        )
+        start = odd[0]
     else:
         # Fully Eulerian (0 odd nodes): any start node produces a circuit.
         start = next(iter(comp_nodes))
