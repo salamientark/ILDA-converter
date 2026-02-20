@@ -57,7 +57,12 @@ def apply_corner_dwell(
 
     Returns:
         A new LaserPath with dwell points inserted at corners.
+
+    Raises:
+        ValueError: If *max_dwell* is not positive.
     """
+    if max_dwell <= 0:
+        raise ValueError(f"max_dwell must be non-negative, got {max_dwell}")
     if len(path) < 3:
         return list(path)
 
@@ -68,14 +73,14 @@ def apply_corner_dwell(
         out.append(pt)
 
         # Skip blanking points, first, and last
-        if pt.status != 0 or i == 0 or i == len(path) - 1:
+        if pt.is_blanking or i == 0 or i == len(path) - 1:
             continue
 
         prev = path[i - 1]
         nxt = path[i + 1]
 
         # Skip if either neighbour is blanking
-        if prev.status != 0 or nxt.status != 0:
+        if prev.is_blanking or nxt.status != 0:
             continue
 
         angle = _vertex_angle_deg(prev, pt, nxt)

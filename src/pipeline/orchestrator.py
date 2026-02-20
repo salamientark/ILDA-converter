@@ -317,13 +317,8 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
                 blanking_d,
             )
             raw_ilda_dwell, _, _, _ = laser_path_to_ilda(dwell_path)
-            with open(
-                f"{optimizer_workspace}/{filename}_{cfg_name}_corner_dwell.ild", "wb"
-            ) as f:
-                f.write(b"".join(raw_ilda_dwell))
-            logger.info(
-                "Saved corner_dwell ILDA: %s/%s_%s_corner_dwell.ild",
-                optimizer_workspace,
-                filename,
-                cfg_name,
+            dwell_out = (
+                Path(optimizer_workspace) / f"{filename}_{cfg_name}_corner_dwell.ild"
             )
+            dwell_out.write_bytes(b"".join(raw_ilda_dwell))
+            logger.info("Saved corner_dwell ILDA: %s", dwell_out)
