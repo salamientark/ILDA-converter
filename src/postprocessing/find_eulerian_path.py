@@ -290,6 +290,98 @@ def _circuit_to_path(
 
 
 # ---------------------------------------------------------------------------
+# Component processing and sub-path stitching helpers
+# ---------------------------------------------------------------------------
+
+
+def _process_component(
+    edges: list[_Edge],
+    adj: dict[_Node, list[int]],
+    comp_nodes: set[_Node],
+    comp_idx: int,
+    n_components: int,
+    *,
+    r: int,
+    g: int,
+    b: int,
+) -> LaserPath:
+    """Build and return the Eulerian sub-path for a single connected component.
+
+    Constructs a local copy of the adjacency dict, identifies odd-degree nodes,
+    inserts blanking edges as needed via :func:`_add_blanking_edges`, selects a
+    start node, runs Hierholzer's algorithm, and converts the circuit to a
+    :class:`LaserPath` via :func:`_circuit_to_path`.
+
+    Args:
+        edges: Global edge list (mutated in-place when blanking edges are added).
+        adj: Global adjacency dict (not mutated; local copy is made).
+        comp_nodes: Node set for this component.
+        comp_idx: Zero-based index of this component (for logging).
+        n_components: Total number of components (for logging).
+        r / g / b: Colour channels for visible points.
+
+    Returns:
+        Ordered :class:`LaserPath` for this component, or ``[]`` if empty.
+    """
+    comp_adj: dict[_Node, list[int]] = {n: list(adj[n]) for n in comp_nodes if n in adj}
+
+    odd = [n for n, es in comp_adj.items() if len(es) % 2 == 1]
+    n_odd = len(odd)
+    logger.debug(
+        "component %d/%d: %d node(s), %d odd-degree node(s)",
+        comp_idx + 1,
+        n_components,
+        len(comp_nodes),
+        n_odd,
+    )
+
+    if n_odd > 2:
+        # Pair all but 2 odd nodes so that exactly 2 remain (semi-Eulerian).
+        # The 2 unpaired nodes become the natural start and end of the path.
+        _add_blanking_edges(edges, comp_adj, odd[:-2])
+        start = odd[-2]
+    elif n_odd == 2:
+        # Already semi-Eulerian: path runs from odd[0] to odd[1].
+        start = odd[0]
+    else:
+        # Fully Eulerian (0 odd nodes): any start node produces a circuit.
+        start = next(iter(comp_nodes))
+
+    circuit = _hierholzer(edges, comp_adj, start)
+    return _circuit_to_path(circuit, edges, r=r, g=g, b=b)
+
+
+def _stitch_sub_paths(sub_paths: list[LaserPath]) -> LaserPath:
+    """Merge component sub-paths into one :class:`LaserPath` with blanking jumps.
+
+    Between each pair of consecutive sub-paths two blanking
+    :class:`LaserPoint` objects are inserted: one holding the last position of
+    the outgoing sub-path and one travelling to the first position of the
+    incoming sub-path.
+
+    Args:
+        sub_paths: Non-empty list of per-component paths (empty entries skipped).
+
+    Returns:
+        A single merged :class:`LaserPath`, or ``[]`` if *sub_paths* is empty.
+    """
+    if not sub_paths:
+        return []
+
+    path: LaserPath = sub_paths[0]
+    for sp in sub_paths[1:]:
+        if not sp:
+            continue
+        last = path[-1]
+        first_pt = sp[0]
+        path.append(LaserPoint.from_xy(last.x, last.y, status=1))
+        path.append(LaserPoint.from_xy(first_pt.x, first_pt.y, status=1))
+        path.extend(sp)
+
+    return path
+
+
+# ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
 
@@ -335,56 +427,16 @@ def find_eulerian_path(
     components = _find_components(adj, edges)
     logger.debug("find_eulerian_path: %d connected component(s)", len(components))
 
-    sub_paths: list[LaserPath] = []
-
-    for comp_idx, comp_nodes in enumerate(components):
-        # Local adjacency for this component (copy so mutations stay local)
-        comp_adj: dict[_Node, list[int]] = {
-            n: list(adj[n]) for n in comp_nodes if n in adj
-        }
-
-        odd = [n for n, es in comp_adj.items() if len(es) % 2 == 1]
-        n_odd = len(odd)
-        logger.debug(
-            "component %d/%d: %d node(s), %d odd-degree node(s)",
-            comp_idx + 1,
-            len(components),
-            len(comp_nodes),
-            n_odd,
+    sub_paths = [
+        sp
+        for comp_idx, comp_nodes in enumerate(components)
+        if (
+            sp := _process_component(
+                edges, adj, comp_nodes, comp_idx, len(components), r=r, g=g, b=b
+            )
         )
+    ]
 
-        if n_odd > 2:
-            # Pair all but 2 odd nodes so that exactly 2 remain (semi-Eulerian).
-            # The 2 unpaired nodes become the natural start and end of the path.
-            _add_blanking_edges(edges, comp_adj, odd[:-2])
-            start = odd[-2]
-        elif n_odd == 2:
-            # Already semi-Eulerian: path runs from odd[0] to odd[1] with no
-            # extra blanking edge required.
-            start = odd[0]
-        else:
-            # Fully Eulerian (0 odd nodes): any start node produces a circuit.
-            start = next(iter(comp_nodes))
-
-        circuit = _hierholzer(edges, comp_adj, start)
-        sub_path = _circuit_to_path(circuit, edges, r=r, g=g, b=b)
-        if sub_path:
-            sub_paths.append(sub_path)
-
-    if not sub_paths:
-        return []
-
-    # Stitch sub-paths with blanking jumps between components
-    path = sub_paths[0]
-    for sp in sub_paths[1:]:
-        if not sp:
-            continue
-        last = path[-1]
-        first_pt = sp[0]
-        # Hold last visible position (blanking), then travel to next component
-        path.append(LaserPoint.from_xy(last.x, last.y, status=1))
-        path.append(LaserPoint.from_xy(first_pt.x, first_pt.y, status=1))
-        path.extend(sp)
-
+    path = _stitch_sub_paths(sub_paths)
     logger.debug("find_eulerian_path: %d total points in LaserPath", len(path))
     return path

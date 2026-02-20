@@ -14,6 +14,75 @@ from src.logger.logging_config import get_logger
 logger = get_logger(__name__)
 
 
+def _collect_endpoints(
+    polylines: list[list[tuple[float, float]]],
+) -> list[tuple[int, str, float, float]]:
+    """Return (poly_idx, role, x, y) for the start/end of every non-empty polyline."""
+    endpoints: list[tuple[int, str, float, float]] = []
+    for i, poly in enumerate(polylines):
+        if not poly:
+            continue
+        endpoints.append((i, "start", poly[0][0], poly[0][1]))
+        if len(poly) > 1:
+            endpoints.append((i, "end", poly[-1][0], poly[-1][1]))
+    return endpoints
+
+
+def _snap_endpoints(
+    endpoints: list[tuple[int, str, float, float]],
+    threshold: float,
+) -> tuple[
+    list[tuple[float, float]],
+    dict[tuple[int, str], tuple[float, float]],
+    int,
+]:
+    """Build canonical coords and record per-endpoint snaps.
+
+    Returns:
+        ``(canonicals, snapped_coords, snap_count)`` where *canonicals* is the
+        ordered list of first-seen unique coordinates, *snapped_coords* maps
+        ``(poly_idx, role)`` to its canonical coordinate, and *snap_count* is
+        the number of endpoints that were moved.
+    """
+    canonicals: list[tuple[float, float]] = []
+    snapped_coords: dict[tuple[int, str], tuple[float, float]] = {}
+    snap_count = 0
+
+    for poly_idx, role, x, y in endpoints:
+        matched: tuple[float, float] | None = None
+        for cx, cy in canonicals:
+            if math.hypot(x - cx, y - cy) < threshold:
+                matched = (cx, cy)
+                break
+        if matched is None:
+            canonicals.append((x, y))
+            snapped_coords[(poly_idx, role)] = (x, y)
+        else:
+            snapped_coords[(poly_idx, role)] = matched
+            if matched != (x, y):
+                snap_count += 1
+
+    return canonicals, snapped_coords, snap_count
+
+
+def _rebuild_polylines(
+    polylines: list[list[tuple[float, float]]],
+    snapped_coords: dict[tuple[int, str], tuple[float, float]],
+) -> list[list[tuple[float, float]]]:
+    """Return a new polyline list with endpoints replaced by their canonical coords."""
+    result: list[list[tuple[float, float]]] = []
+    for i, poly in enumerate(polylines):
+        if not poly:
+            result.append(list(poly))
+            continue
+        new_poly = list(poly)
+        new_poly[0] = snapped_coords.get((i, "start"), poly[0])
+        if len(poly) > 1:
+            new_poly[-1] = snapped_coords.get((i, "end"), poly[-1])
+        result.append(new_poly)
+    return result
+
+
 def weld_vertices(
     polylines: list[list[tuple[float, float]]],
     *,
@@ -36,52 +105,9 @@ def weld_vertices(
         A new ``list[list[tuple[float, float]]]`` with snapped endpoints.
         The input is never mutated.
     """
-    # --- 1. Collect all endpoints ----------------------------------------
-    # Each entry: (poly_idx, role, x, y)  where role is "start" or "end".
-    endpoints: list[tuple[int, str, float, float]] = []
-    for i, poly in enumerate(polylines):
-        if not poly:
-            continue
-        endpoints.append((i, "start", poly[0][0], poly[0][1]))
-        if len(poly) > 1:
-            endpoints.append((i, "end", poly[-1][0], poly[-1][1]))
-
-    # --- 2. Build canonical list & record snaps --------------------------
-    # canonicals: list of (cx, cy)
-    canonicals: list[tuple[float, float]] = []
-    # snapped_coords[(poly_idx, role)] = (cx, cy)
-    snapped_coords: dict[tuple[int, str], tuple[float, float]] = {}
-    snap_count = 0
-
-    for poly_idx, role, x, y in endpoints:
-        matched: tuple[float, float] | None = None
-        for cx, cy in canonicals:
-            dist = math.hypot(x - cx, y - cy)
-            if dist < threshold:
-                matched = (cx, cy)
-                break
-        if matched is None:
-            canonicals.append((x, y))
-            snapped_coords[(poly_idx, role)] = (x, y)
-        else:
-            snapped_coords[(poly_idx, role)] = matched
-            if matched != (x, y):
-                snap_count += 1
-
+    endpoints = _collect_endpoints(polylines)
+    _canonicals, snapped_coords, snap_count = _snap_endpoints(endpoints, threshold)
     logger.debug(
         "weld_vertices: %d endpoints snapped (threshold=%.3g)", snap_count, threshold
     )
-
-    # --- 3. Rebuild polylines with snapped endpoints ---------------------
-    result: list[list[tuple[float, float]]] = []
-    for i, poly in enumerate(polylines):
-        if not poly:
-            result.append(list(poly))
-            continue
-        new_poly = list(poly)
-        new_poly[0] = snapped_coords.get((i, "start"), poly[0])
-        if len(poly) > 1:
-            new_poly[-1] = snapped_coords.get((i, "end"), poly[-1])
-        result.append(new_poly)
-
-    return result
+    return _rebuild_polylines(polylines, snapped_coords)

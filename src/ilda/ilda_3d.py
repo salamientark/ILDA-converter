@@ -180,30 +180,24 @@ def ilda_footer_3d() -> bytes:
     return ilda_header_3d(num_points=0, frame_name="", company_name="")
 
 
-def laser_path_to_ilda(
-    path: list,
-    z_value: int = 0,
-    invert_y: bool = True,
-) -> tuple[list[bytes], float, float, float]:
-    """Convert a LaserPath (flat list of LaserPoint) to ILDA Format 0 bytes.
-
-    Each point's ``status`` field is encoded as the ILDA blanking bit (0x40).
-    The last point in the path has bit 7 set (0x80) to mark end-of-frame.
-
-    Parameters:
-        path (list[LaserPoint]): Flat list of laser points.
-        z_value (int): Z coordinate value for all points (default 0).
-        invert_y (bool): Whether to invert the Y axis when mapping points to ILDA.
-
-    Returns:
-        tuple[list[bytes], float, float, float]: List of ILDA byte chunks
-            (header, body, footer) | Scale factor used | Center X offset | Center Y offset
-
-    Raises:
-        ValueError: If ``path`` is empty or ``z_value`` is out of range.
-    """
+def validate_z_value(z_value: int) -> None:
+    """Raise ValueError if z_value is outside the ILDA signed-16-bit range."""
     if z_value < -32768 or z_value > 32767:
         raise ValueError(f"z_value must be in range -32768 to 32767, got {z_value}")
+
+
+def compute_scale_and_center(path: list) -> tuple[float, float, float]:
+    """Validate path and compute scale, center_x, center_y from a LaserPath.
+
+    Parameters:
+        path (list[LaserPoint]): Non-empty flat list of laser points.
+
+    Returns:
+        tuple[float, float, float]: scale, center_x, center_y
+
+    Raises:
+        ValueError: If ``path`` is empty.
+    """
     if not path:
         raise ValueError("path is empty - cannot convert empty LaserPath to ILDA")
 
@@ -227,6 +221,30 @@ def laser_path_to_ilda(
     center_x = (min_x + max_x) / 2
     center_y = (min_y + max_y) / 2
 
+    return scale, center_x, center_y
+
+
+def encode_points_to_body(
+    path: list,
+    scale: float,
+    center_x: float,
+    center_y: float,
+    z_value: int,
+    invert_y: bool,
+) -> tuple[bytes, int]:
+    """Encode a LaserPath to ILDA Format 0 binary point records.
+
+    Parameters:
+        path (list[LaserPoint]): Flat list of laser points.
+        scale (float): Scale factor computed by :func:`compute_scale_and_center`.
+        center_x (float): X center offset.
+        center_y (float): Y center offset.
+        z_value (int): Z coordinate value for all points.
+        invert_y (bool): Whether to invert the Y axis.
+
+    Returns:
+        tuple[bytes, int]: Binary point records and the number of points encoded.
+    """
     body = b""
     num_points = len(path)
 
@@ -246,6 +264,37 @@ def laser_path_to_ilda(
             status |= 0x80
 
         body += struct.pack(">hhhBB", ilda_x, ilda_y, z_value, status, 0)
+
+    return body, num_points
+
+
+def laser_path_to_ilda(
+    path: list,
+    z_value: int = 0,
+    invert_y: bool = True,
+) -> tuple[list[bytes], float, float, float]:
+    """Convert a LaserPath (flat list of LaserPoint) to ILDA Format 0 bytes.
+
+    Each point's ``status`` field is encoded as the ILDA blanking bit (0x40).
+    The last point in the path has bit 7 set (0x80) to mark end-of-frame.
+
+    Parameters:
+        path (list[LaserPoint]): Flat list of laser points.
+        z_value (int): Z coordinate value for all points (default 0).
+        invert_y (bool): Whether to invert the Y axis when mapping points to ILDA.
+
+    Returns:
+        tuple[list[bytes], float, float, float]: List of ILDA byte chunks
+            (header, body, footer) | Scale factor used | Center X offset | Center Y offset
+
+    Raises:
+        ValueError: If ``path`` is empty or ``z_value`` is out of range.
+    """
+    validate_z_value(z_value)
+    scale, center_x, center_y = compute_scale_and_center(path)
+    body, num_points = encode_points_to_body(
+        path, scale, center_x, center_y, z_value, invert_y
+    )
 
     header = ilda_header_3d(num_points=num_points)
     footer = ilda_footer_3d()

@@ -262,6 +262,9 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
 
             # Stage 3: Optimized (Eulerian path)
             opt_path = find_eulerian_path(welded, r=255, g=255, b=255)
+            if not opt_path:
+                logger.info("Stage optimized: empty path; skipping ILDA output")
+                continue
             visible = sum(1 for pt in opt_path if not pt.is_blanking)
             blanking = sum(1 for pt in opt_path if pt.is_blanking)
             logger.info(

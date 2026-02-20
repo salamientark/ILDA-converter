@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 
-def count_ilda_points(data: bytes) -> list[int]:
+def count_ilda_3d_points(data: bytes) -> list[int]:
     """Return the number of points in each frame of an ILDA file."""
     counts = []
     offset = 0
@@ -28,7 +28,7 @@ def main() -> None:
         print(f"Usage: {sys.argv[0]} <file.ild>", file=sys.stderr)
         sys.exit(1)
     path = Path(sys.argv[1])
-    counts = count_ilda_points(path.read_bytes())
+    counts = count_ilda_3d_points(path.read_bytes())
     print(counts)
 
 
