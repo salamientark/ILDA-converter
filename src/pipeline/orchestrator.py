@@ -27,6 +27,7 @@ from src.preprocessing.preprocessing import (
 )
 from src.postprocessing.find_eulerian_path import find_eulerian_path
 
+from src.postprocessing.corner_dwell import apply_corner_dwell
 from src.postprocessing.resample_path import resample_path
 from src.postprocessing.weld_vertices import weld_vertices
 from src.vectorization import POTRACE_CONFIGS, vectorize_opencv
@@ -304,6 +305,28 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
                 f.write(b"".join(raw_ilda_resampled))
             logger.info(
                 "Saved resampled ILDA: %s/%s_%s_resampled.ild",
+                optimizer_workspace,
+                filename,
+                cfg_name,
+            )
+
+            # Stage 5: Corner dwell
+            dwell_path = apply_corner_dwell(resampled, max_dwell=8)
+            visible_d = sum(1 for pt in dwell_path if not pt.is_blanking)
+            blanking_d = sum(1 for pt in dwell_path if pt.is_blanking)
+            logger.info(
+                "Stage corner_dwell: %d total points (%d visible, %d blanking)",
+                len(dwell_path),
+                visible_d,
+                blanking_d,
+            )
+            raw_ilda_dwell, _, _, _ = laser_path_to_ilda(dwell_path)
+            with open(
+                f"{optimizer_workspace}/{filename}_{cfg_name}_corner_dwell.ild", "wb"
+            ) as f:
+                f.write(b"".join(raw_ilda_dwell))
+            logger.info(
+                "Saved corner_dwell ILDA: %s/%s_%s_corner_dwell.ild",
                 optimizer_workspace,
                 filename,
                 cfg_name,
