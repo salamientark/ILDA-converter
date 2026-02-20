@@ -45,17 +45,30 @@ def _snap_endpoints(
         the number of endpoints that were moved.
     """
     canonicals: list[tuple[float, float]] = []
+    # Grid bucket: cell size == threshold so neighbours live in the 3×3 surrounding cells.
+    grid: dict[tuple[int, int], list[tuple[float, float]]] = {}
     snapped_coords: dict[tuple[int, str], tuple[float, float]] = {}
     snap_count = 0
 
+    def _bucket(px: float, py: float) -> tuple[int, int]:
+        return (int(math.floor(px / threshold)), int(math.floor(py / threshold)))
+
     for poly_idx, role, x, y in endpoints:
+        bx, by = _bucket(x, y)
         matched: tuple[float, float] | None = None
-        for cx, cy in canonicals:
-            if math.hypot(x - cx, y - cy) < threshold:
-                matched = (cx, cy)
+        for nx in range(bx - 1, bx + 2):
+            if matched is not None:
                 break
+            for ny in range(by - 1, by + 2):
+                for cx, cy in grid.get((nx, ny), []):
+                    if math.hypot(x - cx, y - cy) < threshold:
+                        matched = (cx, cy)
+                        break
+                if matched is not None:
+                    break
         if matched is None:
             canonicals.append((x, y))
+            grid.setdefault(_bucket(x, y), []).append((x, y))
             snapped_coords[(poly_idx, role)] = (x, y)
         else:
             snapped_coords[(poly_idx, role)] = matched
