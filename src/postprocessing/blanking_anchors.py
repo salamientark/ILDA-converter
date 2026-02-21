@@ -64,9 +64,7 @@ def add_blanking_anchors(path: LaserPath, *, repeats: int = 4) -> LaserPath:
         if not pt.is_blanking and next_is_blanking:
             # Lead-out: append visible copies after the last visible point
             for _ in range(repeats):
-                out.append(
-                    LaserPoint(x=pt.x, y=pt.y, r=pt.r, g=pt.g, b=pt.b, status=0)
-                )
+                out.append(LaserPoint(x=pt.x, y=pt.y, r=pt.r, g=pt.g, b=pt.b, status=0))
             lead_out_added += repeats
 
     _log.debug(
