@@ -31,6 +31,7 @@ from src.postprocessing.find_eulerian_path import find_eulerian_path
 from src.postprocessing.corner_dwell import apply_corner_dwell
 from src.postprocessing.resample_path import resample_path
 from src.postprocessing.weld_vertices import weld_vertices
+from src.postprocessing.blanking_anchors import add_blanking_anchors
 from src.vectorization import POTRACE_CONFIGS, vectorize_opencv
 
 logger = get_logger(__name__)
@@ -225,7 +226,7 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
 
             with Timer("vectorization", config=cfg_name):
                 polyline, _ = vectorize_opencv(
-                    processed_img, epsilon_ratio=0.0001, invert=True
+                    processed_img, epsilon_ratio=0.001, invert=True
                 )
 
             logger.debug("Converting path to SVG")
@@ -322,3 +323,20 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
             )
             dwell_out.write_bytes(b"".join(raw_ilda_dwell))
             logger.info("Saved corner_dwell ILDA: %s", dwell_out)
+
+            # Stage 6: Blanking optimization
+            blanked = add_blanking_anchors(dwell_path)
+            visible_d = sum(1 for pt in blanked if not pt.is_blanking)
+            blanking_d = sum(1 for pt in blanked if pt.is_blanking)
+            logger.info(
+                "Stage add_blanking_anchors: %d total points (%d visible, %d blanking)",
+                len(blanked),
+                visible_d,
+                blanking_d,
+            )
+            raw_ilda_blanked, _, _, _ = laser_path_to_ilda(blanked)
+            blanked_out = (
+                Path(optimizer_workspace) / f"{filename}_{cfg_name}_blanked.ild"
+            )
+            blanked_out.write_bytes(b"".join(raw_ilda_blanked))
+            logger.info("Saved blanked ILDA: %s", blanked_out)

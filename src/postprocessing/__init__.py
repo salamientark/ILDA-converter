@@ -7,6 +7,7 @@ from .weld_vertices import weld_vertices
 from .find_eulerian_path import find_eulerian_path
 from .resample_path import resample_path
 from .corner_dwell import apply_corner_dwell
+from .blanking_anchors import add_blanking_anchors
 
 __all__ = [
     "LaserPoint",
@@ -17,4 +18,5 @@ __all__ = [
     "find_eulerian_path",
     "resample_path",
     "apply_corner_dwell",
+    "add_blanking_anchors",
 ]
