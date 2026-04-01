@@ -9,9 +9,11 @@ Algorithms are applied sequentially. Later phases will add:
 from __future__ import annotations
 
 from src.logger.logging_config import get_logger
+from src.postprocessing.blanking_anchors import add_blanking_anchors
+from src.postprocessing.color_shift import shift_color_signal
 from src.postprocessing.corner_dwell import apply_corner_dwell
 from src.postprocessing.find_eulerian_path import find_eulerian_path
-from src.postprocessing.laser_path import LaserPath
+from src.postprocessing.laser_path import LaserPath, from_polylines
 from src.postprocessing.resample_path import resample_path
 from src.postprocessing.weld_vertices import weld_vertices
 
@@ -25,7 +27,9 @@ def optimize(
     g: int = 0,
     b: int = 0,
     max_step: float = 50.0,
-    max_dwell: int | None = None,
+    max_dwell: int = 8,
+    blanking_anchors: int = 4,
+    color_shift: int = 0,
 ) -> LaserPath:
     """Run the full optimization pipeline on a polylines structure.
 
@@ -45,7 +49,12 @@ def optimize(
         max_step: Maximum Euclidean distance between consecutive output points.
             Defaults to 50.0.
         max_dwell: Maximum number of dwell copies inserted at a single corner
-            vertex.  When ``None`` (default) corner dwell is skipped entirely.
+            vertex. Must be positive. Defaults to 8.
+        blanking_anchors: Number of anchor copies inserted at each blanking
+            transition (lead-out visible copies + lead-in blanking copies).
+            Must be positive. Defaults to 4.
+        color_shift: Number of points to shift the color signal. Negative values
+            delay the color (typical usage). Pass 0 for no shift. Defaults to 0.
 
     Returns:
         An optimized LaserPath.
@@ -55,7 +64,7 @@ def optimize(
     # Phase 1.1: snap near-coincident endpoints
     polylines = weld_vertices(polylines)
 
-    path = LaserPath.from_polylines(polylines)
+    path = from_polylines(polylines)
 
     # Phase 1.2: Eulerian path — single continuous sweep with blanking jumps
     path = find_eulerian_path(polylines, r=r, g=g, b=b)
@@ -64,10 +73,13 @@ def optimize(
     path = resample_path(path, max_step=max_step)
 
     # Phase 2.2: corner dwell (optional)
-    if max_dwell is not None:
-        path = apply_corner_dwell(path, max_dwell=max_dwell)
+    path = apply_corner_dwell(path, max_dwell=max_dwell)
 
-    # Phase 3: add_blanking_anchors, shift_color_signal
+    # Phase 3: blanking anchors (lead-out / lead-in)
+    path = add_blanking_anchors(path, repeats=blanking_anchors)
+
+    # Phase 3.2: color shift
+    path = shift_color_signal(path, shift_amount=color_shift)
 
     logger.debug("optimize: done, %d points", len(path))
     return path
