@@ -49,12 +49,12 @@ def optimize(
         max_step: Maximum Euclidean distance between consecutive output points.
             Defaults to 50.0.
         max_dwell: Maximum number of dwell copies inserted at a single corner
-            vertex.  When ``None`` (default) corner dwell is skipped entirely.
+            vertex. Must be positive. Defaults to 8.
         blanking_anchors: Number of anchor copies inserted at each blanking
             transition (lead-out visible copies + lead-in blanking copies).
-            When ``None`` (default) blanking anchors are skipped entirely.
+            Must be positive. Defaults to 4.
         color_shift: Number of points to shift the color signal. Negative values
-            delay the color. When ``None`` (default) color shift is skipped entirely.
+            delay the color (typical usage). Pass 0 for no shift. Defaults to 0.
 
     Returns:
         An optimized LaserPath.
@@ -75,10 +75,10 @@ def optimize(
     # Phase 2.2: corner dwell (optional)
     path = apply_corner_dwell(path, max_dwell=max_dwell)
 
-    # Phase 3.5: blanking anchors (lead-out / lead-in)
+    # Phase 3: blanking anchors (lead-out / lead-in)
     path = add_blanking_anchors(path, repeats=blanking_anchors)
 
-    # Phase 3: shift_color_signal
+    # Phase 3.2: color shift
     path = shift_color_signal(path, shift_amount=color_shift)
 
     logger.debug("optimize: done, %d points", len(path))
