@@ -327,13 +327,13 @@ def run_pipeline(input: str, preprocessing: str, vectorization: str) -> None:
 
             # Stage 6: Blanking optimization
             blanked = add_blanking_anchors(dwell_path)
-            visible_d = sum(1 for pt in blanked if not pt.is_blanking)
-            blanking_d = sum(1 for pt in blanked if pt.is_blanking)
+            visible_b = sum(1 for pt in blanked if not pt.is_blanking)
+            blanking_b = sum(1 for pt in blanked if pt.is_blanking)
             logger.info(
                 "Stage add_blanking_anchors: %d total points (%d visible, %d blanking)",
                 len(blanked),
-                visible_d,
-                blanking_d,
+                visible_b,
+                blanking_b,
             )
             raw_ilda_blanked, _, _, _ = laser_path_to_ilda(blanked)
             blanked_out = (
