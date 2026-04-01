@@ -44,6 +44,9 @@ def add_blanking_anchors(path: LaserPath, *, repeats: int = 4) -> LaserPath:
     if repeats <= 0:
         raise ValueError(f"repeats must be positive, got {repeats}")
 
+    if not path:
+        return []
+
     n = len(path)
     out: list[LaserPoint] = []
     lead_out_added = 0
