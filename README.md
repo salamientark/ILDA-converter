@@ -2,58 +2,44 @@
 
 [![CI](https://github.com/salamientark/ILDA-converter/actions/workflows/ci.yml/badge.svg)](https://github.com/salamientark/ILDA-converter/actions/workflows/ci.yml)
 
-A Python toolkit for converting bitmap and vector images to ILDA format for laser show control systems.
-
-## Overview
-
-ILDA (International Laser Display Association) format is the industry standard for laser show control data. This project provides scripts to convert standard image formats (bitmap and vector) into ILDA files that can be used directly with laser projection systems.
-
-## Project Goals
-
-- **Bitmap Processing**: Convert raster images (PNG, JPG, etc.) to ILDA format through preprocessing, edge detection, and vectorization
-- **Vector Processing**: Convert SVG vector files directly to ILDA format
-- **CLI Interface**: Command-line tools for batch processing and automation
-
-## Current Status
-
-**Implemented:**
-- ✓ Bitmap preprocessing with multiple thresholding algorithms
-  - Binary thresholding
-  - Adaptive mean thresholding
-  - Adaptive gaussian thresholding
-
-**In Development:**
-- Edge detection and vectorization pipeline
-- ILDA file format writer
-- SVG to ILDA conversion
+A Python toolkit that turns ordinary bitmap images into [ILDA](http://www.laserist.org/StandardsDocs/ILDA_IDTF14_rev011.pdf) files ready to drive a laser projector. It runs a full pipeline — preprocessing, vectorization, path optimization, and ILDA encoding — in a single command.
 
 ## Features
 
-### Bitmap Preprocessing
+- **End-to-end pipeline**: bitmap → binary mask → vector polylines → optimized laser path → `.ild` file.
+- **Multiple thresholding methods**: binary, adaptive mean, adaptive Gaussian, and Otsu.
+- **Vectorization backends**: [Potrace](https://potrace.sourceforge.net/) (high quality) and an OpenCV contour approximator (fast).
+- **Laser-aware post-processing**: vertex welding, Eulerian path stitching, resampling, corner dwell, blanking anchors, and galvo/color signal shifting.
+- **Inspectable artifacts**: every pipeline stage saves intermediate PBM, SVG, and ILDA files for tuning and debugging.
+- **Debug tooling**: scripts to count points and render `.ild` files back to SVG for visual inspection.
 
-The bitmap preprocessing module provides three different thresholding methods to convert color/grayscale images to black and white, preparing them for vectorization:
+## Pipeline overview
 
-- **Binary Threshold**: Simple fixed threshold at 127
-- **Adaptive Mean Threshold**: Local mean-based adaptive thresholding
-- **Adaptive Gaussian Threshold**: Gaussian-weighted local thresholding
+```
+input.png ─▶ preprocessing ─▶ vectorization ─▶ weld ─▶ Eulerian path
+                                                       │
+                              ┌────────────────────────┘
+                              ▼
+                        resample ─▶ corner dwell ─▶ blanking anchors
+                              │
+                              ▼
+                        color shift ─▶ output.ild
+```
 
-Each method produces different results depending on the input image characteristics, allowing you to choose the best preprocessing approach for your specific image.
+Each stage writes its output to `data/<image_name>/...` so you can compare results side by side.
+
+## Requirements
+
+- Python **>= 3.14**
+- [`uv`](https://docs.astral.sh/uv/) (recommended) or `pip`
 
 ## Installation
 
-### Requirements
-
-- Python >= 3.14
-- uv (recommended) or pip
-
-### Setup
-
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd ilda
+git clone https://github.com/salamientark/ILDA-converter.git
+cd ILDA-converter
 
-# Install dependencies with uv
+# With uv
 uv sync
 
 # Or with pip
@@ -62,90 +48,85 @@ pip install -e .
 
 ## Usage
 
-### Bitmap Preprocessing
+### CLI
 
 ```bash
-# Run preprocessing on an image
-python main.py --input path/to/image.jpg
+python main.py --input path/to/image.png \
+               --preprocessing binary \
+               --vector-config fast
+```
 
-# Outputs will be saved to data/smiley/preprocessing/ directory:
-# - binary_image.jpg
-# - mean_threshold_image.jpg
-# - gaussian_threshold_image.jpg
+| Flag | Choices | Default | Description |
+|------|---------|---------|-------------|
+| `--input` | path | *required* | Source bitmap (PNG/JPG/BMP/...). |
+| `--preprocessing`, `-p` | `binary`, `gaussian`, `mean`, `otsu`, `all` | `binary` | Thresholding method. `all` runs every method. |
+| `--vector-config`, `-v` | `default`, `fast`, `high`, `smooth`, `all` | `fast` | Potrace vectorization preset. |
+| `--output` | path | — | Reserved for future use. |
+
+Outputs are written under `data/<image_name>/`:
+
+```
+data/<name>/
+├── preprocessing/    # binary masks (.pbm)
+├── svg/              # vectorized output (.svg)
+├── ilda/             # raw ILDA file (.ild)
+└── optimizer/        # post-processed ILDA at each optimization stage
 ```
 
 ### Python API
 
 ```python
-from src.bitmap.preprocessing import binary_img, mean_thresh_img, gaussian_thresh_img
+from src.pipeline.orchestrator import run_pipeline
 
-# Apply binary thresholding
-binary_result = binary_img("path/to/image.jpg")
-
-# Apply adaptive mean thresholding
-mean_result = mean_thresh_img("path/to/image.jpg")
-
-# Apply adaptive gaussian thresholding
-gaussian_result = gaussian_thresh_img("path/to/image.jpg")
+run_pipeline(
+    input="data/smiley.png",
+    preprocessing="otsu",
+    vectorization="high",
+)
 ```
 
-## Technical Pipeline
+Lower-level building blocks live in `src/preprocessing`, `src/vectorization`, `src/postprocessing`, and `src/ilda` — each is usable on its own.
 
-### Planned Processing Pipeline
+### Debug scripts
 
-1. **Input Stage**
-   - Bitmap: PNG, JPG, BMP → Preprocessing → Edge Detection → Vectorization
-   - Vector: SVG → Path Extraction
+```bash
+# Render a generated .ild back to SVG and open it in the browser
+python scripts/draw_ilda.py data/smiley/ilda/binary_smiley_fast.ild
 
-2. **Conversion Stage**
-   - Vector paths → ILDA coordinates
-   - Optimization (path ordering, blanking, etc.)
+# Print point/frame statistics for a file
+python scripts/count_ilda_points.py data/smiley/optimizer/binary_smiley_fast_optimized.ild
+```
 
-3. **Output Stage**
-   - ILDA file generation
-   - Format validation
+## Project layout
 
-## Roadmap
+```
+src/
+├── preprocessing/    # thresholding (binary, mean, gaussian, otsu)
+├── vectorization/    # potrace + opencv backends, configs
+├── postprocessing/   # weld, Eulerian path, resample, dwell, blanking, color shift
+├── ilda/             # ILDA format encoder (2D / 3D, frame separation)
+├── pipeline/         # orchestrator wiring the stages together
+├── logger/           # structured logging + Timer helpers
+└── debug/            # SVG renderers used by debug scripts
 
-1. **Phase 1: Bitmap Processing** (Current)
-   - [x] Image preprocessing with multiple threshold algorithms
-   - [ ] Edge detection (Canny, Sobel)
-   - [ ] Contour extraction
-   - [ ] Path optimization
-
-2. **Phase 2: ILDA Writer**
-   - [ ] ILDA format specification implementation
-   - [ ] Coordinate system conversion
-   - [ ] Point sequence optimization
-   - [ ] File writer with proper headers
-
-3. **Phase 3: Vector Input**
-   - [ ] SVG parser
-   - [ ] Path extraction from SVG elements
-   - [ ] Curve approximation
-   - [ ] Direct SVG to ILDA conversion
-
-4. **Phase 4: Optimization**
-   - [ ] Blanking optimization
-   - [ ] Scan speed optimization
-   - [ ] Color support
-   - [ ] Animation frame support
+docs/                 # ILDA spec and reference papers
+scripts/              # CLI helpers to inspect generated .ild files
+```
 
 ## Dependencies
 
-- **opencv-python**: Image processing and computer vision operations
-- **matplotlib**: Visualization and plotting (development)
-- **ruff**: Code formatting and linting
+- [`opencv-python`](https://pypi.org/project/opencv-python/) — image processing and contour extraction
+- [`potracer`](https://pypi.org/project/potracer/) — Potrace bindings for vectorization
+- [`numpy`](https://numpy.org/) — array math
+- [`matplotlib`](https://matplotlib.org/) — visualization (debug only)
 
-## Contributing
-
-Contributions are welcome! This is a technical project aimed at laser control applications.
-
-## License
-
-MIT License - see LICENSE file for details.
+> [!NOTE]
+> See [`docs/`](./docs) for the ILDA specification and the laser-projection paper that informed several optimization stages.
 
 ## References
 
 - [ILDA Image Data Transfer Format Specification](http://www.laserist.org/StandardsDocs/ILDA_IDTF14_rev011.pdf)
-- OpenCV Documentation: https://docs.opencv.org/
+- [ILDA Test Pattern 95](./docs/ILDA_TestPattern95_rev002.pdf)
+- *Accurate and Efficient Drawing Method for Laser Projection* (see `docs/`)
+- [OpenCV documentation](https://docs.opencv.org/)
+- [Potrace algorithm](https://potrace.sourceforge.net/potrace.pdf)
