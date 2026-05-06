@@ -4,18 +4,22 @@
 [![Python](https://img.shields.io/badge/python-3.14%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-Convert ordinary bitmap images into [ILDA](http://www.laserist.org/StandardsDocs/ILDA_IDTF14_rev011.pdf) files ready to drive a laser projector. A single command runs the full pipeline: preprocessing, vectorization, path optimization, and ILDA encoding.
+Turn ordinary bitmap images into [ILDA](http://www.laserist.org/StandardsDocs/ILDA_IDTF14_rev011.pdf) files ready to drive a laser projector. One command runs the full pipeline — preprocessing, vectorization, path optimization, and ILDA encoding — with every intermediate artifact saved for inspection.
 
 > [!NOTE]
-> Every stage writes inspectable artifacts (PBM, SVG, ILD) under `data/<image>/`, so you can tune and debug each step.
+> Each stage writes a debuggable artifact (`.pbm`, `.svg`, `.ild`) under `data/<image>/`, so you can tune any step in isolation.
+
+## Why
+
+Hand-authoring ILDA frames is tedious, and most converters are black boxes. This project gives you a transparent, scriptable pipeline: drop in a PNG, get a galvo-friendly `.ild` out, and inspect (or replace) any stage along the way.
 
 ## Features
 
 - **End-to-end pipeline** — bitmap → binary mask → vector polylines → optimized laser path → `.ild`.
-- **Multiple thresholding methods** — binary, adaptive mean, adaptive Gaussian, Otsu (or `all`).
+- **Multiple thresholding methods** — `binary`, adaptive `mean`, adaptive `gaussian`, `otsu`, or `all`.
 - **Two vectorization backends** — [Potrace](https://potrace.sourceforge.net/) for quality, OpenCV contour approximation for speed.
 - **Laser-aware post-processing** — vertex welding, Eulerian path stitching, resampling, corner dwell, blanking anchors, galvo/color signal shifting.
-- **Debug tooling** — render `.ild` back to SVG, inspect point/frame counts.
+- **Debug tooling** — render `.ild` back to SVG, count points and frames.
 
 ## Pipeline
 
