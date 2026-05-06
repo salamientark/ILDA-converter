@@ -1,19 +1,23 @@
 # ILDA Converter
 
 [![CI](https://github.com/salamientark/ILDA-converter/actions/workflows/ci.yml/badge.svg)](https://github.com/salamientark/ILDA-converter/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.14%2B-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-A Python toolkit that turns ordinary bitmap images into [ILDA](http://www.laserist.org/StandardsDocs/ILDA_IDTF14_rev011.pdf) files ready to drive a laser projector. It runs a full pipeline — preprocessing, vectorization, path optimization, and ILDA encoding — in a single command.
+Convert ordinary bitmap images into [ILDA](http://www.laserist.org/StandardsDocs/ILDA_IDTF14_rev011.pdf) files ready to drive a laser projector. A single command runs the full pipeline: preprocessing, vectorization, path optimization, and ILDA encoding.
+
+> [!NOTE]
+> Every stage writes inspectable artifacts (PBM, SVG, ILD) under `data/<image>/`, so you can tune and debug each step.
 
 ## Features
 
-- **End-to-end pipeline**: bitmap → binary mask → vector polylines → optimized laser path → `.ild` file.
-- **Multiple thresholding methods**: binary, adaptive mean, adaptive Gaussian, and Otsu.
-- **Vectorization backends**: [Potrace](https://potrace.sourceforge.net/) (high quality) and an OpenCV contour approximator (fast).
-- **Laser-aware post-processing**: vertex welding, Eulerian path stitching, resampling, corner dwell, blanking anchors, and galvo/color signal shifting.
-- **Inspectable artifacts**: every pipeline stage saves intermediate PBM, SVG, and ILDA files for tuning and debugging.
-- **Debug tooling**: scripts to count points and render `.ild` files back to SVG for visual inspection.
+- **End-to-end pipeline** — bitmap → binary mask → vector polylines → optimized laser path → `.ild`.
+- **Multiple thresholding methods** — binary, adaptive mean, adaptive Gaussian, Otsu (or `all`).
+- **Two vectorization backends** — [Potrace](https://potrace.sourceforge.net/) for quality, OpenCV contour approximation for speed.
+- **Laser-aware post-processing** — vertex welding, Eulerian path stitching, resampling, corner dwell, blanking anchors, galvo/color signal shifting.
+- **Debug tooling** — render `.ild` back to SVG, inspect point/frame counts.
 
-## Pipeline overview
+## Pipeline
 
 ```
 input.png ─▶ preprocessing ─▶ vectorization ─▶ weld ─▶ Eulerian path
@@ -25,8 +29,6 @@ input.png ─▶ preprocessing ─▶ vectorization ─▶ weld ─▶ Eulerian 
                               ▼
                         color shift ─▶ output.ild
 ```
-
-Each stage writes its output to `data/<image_name>/...` so you can compare results side by side.
 
 ## Requirements
 
@@ -63,7 +65,7 @@ python main.py --input path/to/image.png \
 | `--vector-config`, `-v` | `default`, `fast`, `high`, `smooth`, `all` | `fast` | Potrace vectorization preset. |
 | `--output` | path | — | Reserved for future use. |
 
-Outputs are written under `data/<image_name>/`:
+Outputs land in `data/<image_name>/`:
 
 ```
 data/<name>/
@@ -85,7 +87,8 @@ run_pipeline(
 )
 ```
 
-Lower-level building blocks live in `src/preprocessing`, `src/vectorization`, `src/postprocessing`, and `src/ilda` — each is usable on its own.
+> [!TIP]
+> Lower-level building blocks live in `src/preprocessing`, `src/vectorization`, `src/postprocessing`, and `src/ilda` — each is usable on its own.
 
 ### Debug scripts
 
@@ -120,13 +123,13 @@ scripts/              # CLI helpers to inspect generated .ild files
 - [`numpy`](https://numpy.org/) — array math
 - [`matplotlib`](https://matplotlib.org/) — visualization (debug only)
 
-> [!NOTE]
-> See [`docs/`](./docs) for the ILDA specification and the laser-projection paper that informed several optimization stages.
+> [!WARNING]
+> Laser projection can cause permanent eye damage. Always validate generated `.ild` output on a low-power setup before driving real galvos.
 
 ## References
 
 - [ILDA Image Data Transfer Format Specification](http://www.laserist.org/StandardsDocs/ILDA_IDTF14_rev011.pdf)
 - [ILDA Test Pattern 95](./docs/ILDA_TestPattern95_rev002.pdf)
-- *Accurate and Efficient Drawing Method for Laser Projection* (see `docs/`)
+- *Accurate and Efficient Drawing Method for Laser Projection* (see [`docs/`](./docs))
 - [OpenCV documentation](https://docs.opencv.org/)
 - [Potrace algorithm](https://potrace.sourceforge.net/potrace.pdf)
